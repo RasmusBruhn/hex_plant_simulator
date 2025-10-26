@@ -31,7 +31,11 @@ fn main() {
     let name = format!("{crate_name} v{crate_version}");
     let size = PhysicalSize::new(500, 500);
     let color_background = constants::COLOR_BACKGROUND;
-    let graphics_settings = graphics::Settings { color_background };
+    let mode_tiles_background = map::DataModeBackground::Light;
+    let graphics_settings = graphics::Settings {
+        color_background,
+        mode_tiles_background,
+    };
     let settings_window = application::WindowSettingsInput {
         name,
         size,
@@ -39,10 +43,18 @@ fn main() {
     };
 
     // Setup the shader settings
-    let color_map_tiles_background = graphics::ColorMap {
+    let color_map_tiles_background_transparency = graphics::ColorMap {
         saturated: constants::COLOR_MAP_TILES_BACKGROUND_SATURATED,
         empty: constants::COLOR_MAP_TILES_BACKGROUND_EMPTY,
     };
+    let color_map_tiles_background_light = graphics::ColorMap {
+        saturated: constants::COLOR_MAP_SUN_SATURATED,
+        empty: constants::COLOR_MAP_SUN_EMPTY,
+    };
+    let color_map_tiles_background = map::DataModeBackground::new_color_map_collection(
+        color_map_tiles_background_transparency,
+        color_map_tiles_background_light,
+    );
     let color_map_sun = graphics::ColorMap {
         saturated: constants::COLOR_MAP_SUN_SATURATED,
         empty: constants::COLOR_MAP_SUN_EMPTY,
@@ -54,10 +66,19 @@ fn main() {
 
     // Setup the viewer settings
     let framerate = constants::FRAMERATE;
-    let settings_viewer = application::ViewerSettingsInput { framerate };
+    let sim_rate = constants::SIM_RATE;
+    let sim_rate_mod = constants::SIM_RATE_MODIFIER;
+    let settings_viewer = application::ViewerSettingsInput {
+        framerate,
+        sim_rate,
+        sim_rate_mod,
+    };
 
     // Construct the map
-    let map_data = map::Map::new_gradient_x(constants::GRID_SIZE);
+    let map_settings = map::MapSettings::new()
+        .with_transparency(constants::MAP_TRANSPARENCY)
+        .with_sun_speed(constants::MAP_SUN_SPEED);
+    let map_data = map::Map::new(constants::MAP_SIZE, map_settings);
 
     // Setup the main loop
     let mut main_loop = application::MainLoop::new(

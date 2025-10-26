@@ -1,7 +1,7 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 /// A 2D point
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Point {
     /// The x-coordinate
     pub x: f64,
@@ -204,7 +204,7 @@ impl Div<f64> for Point {
 }
 
 /// A 2D size of width and height which are both non-negative
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Size {
     /// The width
     w: f64,
@@ -319,7 +319,7 @@ impl Add<Size> for Size {
 }
 
 /// A 2D size of width and height which are both non-negative integers
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ISize {
     /// The width
     pub w: usize,
@@ -356,7 +356,7 @@ impl Add<&ISize> for &ISize {
 }
 
 /// A 2D index
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Index {
     /// The x-index
     pub x: isize,
@@ -421,7 +421,7 @@ impl Add<Index> for Index {
 }
 
 /// Defines a view of the map
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct View {
     /// The center of the rectangle
     center: Point,
@@ -465,7 +465,7 @@ impl View {
 }
 
 /// Defines a 2x2 matrix
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Matrix {
     /// The values of the matrix
     pub values: [f64; 4],
@@ -763,7 +763,7 @@ impl Mul<f64> for Matrix {
 /// c: The center point
 ///
 /// r: The 2x2 center_transform matrix
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Transform2D {
     /// The transform to apply relative to the center
     pub transform: Matrix,
@@ -948,14 +948,14 @@ impl Mul<Point> for Transform2D {
 
 /// A representation of the Transform2D class able to be shared with wgsl
 #[repr(C)]
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Copy, Clone, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct UniformTransform2D {
     /// The transform as a 4x4 matrix
     pub transform: [[f32; 4]; 4],
 }
 
 /// Describes a single RGBA color
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {
     /// The red component
     r: f64,

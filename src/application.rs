@@ -50,6 +50,14 @@ pub struct MainLoop {
     update_image: bool,
     /// If true, then the simulation must be iterated once
     iterate_simulation: bool,
+    /// If true then the simulation is constantly running
+    run_simulation: bool,
+    /// If true then the simulation must be redrawn next frame
+    redraw_simulation: bool,
+    /// The next time the frame has increased
+    next_frame_time: Instant,
+    /// The next time the simulation must step
+    next_sim_time: Instant,
 }
 
 impl MainLoop {
@@ -98,7 +106,7 @@ impl MainLoop {
             types::Size::new(map.get_size().w as f64, map.get_size().h as f64),
         );
         let settings_viewer = ViewerSettings {
-            framerate: settings_viewer.framerate,
+            input_settings: settings_viewer,
             home_view,
         };
 
@@ -111,6 +119,10 @@ impl MainLoop {
             settings_viewer,
             update_image: false,
             iterate_simulation: false,
+            run_simulation: false,
+            redraw_simulation: false,
+            next_frame_time: Instant::now(),
+            next_sim_time: Instant::now(),
         };
     }
 
@@ -146,6 +158,90 @@ impl MainLoop {
         self.camera.set_transform(transform);
     }
 
+    /// Updates the color map for the background based on the set settings
+    fn set_color_map_background(&self) {
+        let window = match &self.window {
+            Some(window) => window,
+            None => {
+                eprintln!("Cannot get window because it is not initialized");
+                return;
+            }
+        };
+
+        window.get_graphics_state().set_color_map(
+            &window.render_state,
+            &graphics::InstanceType::GridBackground(
+                window.graphics_state.get_settings().mode_tiles_background,
+            ),
+            &self
+                .settings_shader
+                .input_settings
+                .color_map_tiles_background[window
+                .get_graphics_state()
+                .get_settings()
+                .mode_tiles_background
+                .id()],
+        );
+    }
+
+    /// Changes the display mode for the background
+    ///
+    /// # Parameters
+    ///
+    /// mode: The way to change the display mode
+    fn change_mode_background(&mut self, mode: &ChangeMode) {
+        {
+            let window = match &mut self.window {
+                Some(window) => window,
+                None => {
+                    eprintln!("Cannot get window because it is not initialized");
+                    return;
+                }
+            };
+
+            // Set the display mode
+            window
+                .get_graphics_state_mut()
+                .get_settings_mut()
+                .mode_tiles_background = match mode {
+                ChangeMode::Next => window
+                    .get_graphics_state()
+                    .get_settings()
+                    .mode_tiles_background
+                    .next(),
+                ChangeMode::Prev => window
+                    .get_graphics_state()
+                    .get_settings()
+                    .mode_tiles_background
+                    .prev(),
+                ChangeMode::Id(id) => map::DataModeBackground::from_id(*id),
+            };
+            window.get_window().request_redraw();
+
+            // Update the map
+            window
+                .get_graphics_state()
+                .update_map(&window.get_render_state(), &self.map);
+        }
+
+        // Set the new color map
+        self.set_color_map_background();
+        self.request_redraw();
+    }
+
+    /// Requests a redraw to the system
+    fn request_redraw(&self) {
+        let window = match &self.window {
+            Some(window) => window,
+            None => {
+                eprintln!("Cannot get window because it is not initialized");
+                return;
+            }
+        };
+
+        window.get_window().request_redraw();
+    }
+
     /// Handles the initialization of the game loop
     ///
     /// # Parameters
@@ -171,13 +267,36 @@ impl MainLoop {
     /// requested_resume: The time requested to resume
     fn game_loop_iteration(&mut self, event_loop: &ActiveEventLoop, requested_resume: Instant) {
         // Update the time, make sure we do not get a backlog by skipping if we should wait until before now
-        let duration = Duration::from_micros((1e6 / self.settings_viewer.framerate).floor() as u64);
-        let mut new_time = requested_resume + duration;
         let now_time = Instant::now();
-        if new_time < now_time {
-            new_time = now_time + duration;
-        }
-        event_loop.set_control_flow(ControlFlow::WaitUntil(new_time));
+        let (new_time_frame, forward_frame) = if now_time < self.next_frame_time {
+            (self.next_frame_time, false)
+        } else {
+            let duration = Duration::from_micros(
+                (1e6 / self.settings_viewer.input_settings.framerate).floor() as u64,
+            );
+            let new_time = requested_resume + duration;
+            if new_time < now_time {
+                (now_time + duration, true)
+            } else {
+                (new_time, true)
+            }
+        };
+        let (new_time_sim, forward_sim) = if !self.run_simulation {
+            (new_time_frame, false)
+        } else if now_time < self.next_sim_time {
+            (self.next_sim_time, false)
+        } else {
+            let duration = Duration::from_micros(
+                (1e6 / self.settings_viewer.input_settings.sim_rate).floor() as u64,
+            );
+            let new_time = requested_resume + duration;
+            if new_time < now_time {
+                (now_time + duration, true)
+            } else {
+                (new_time, true)
+            }
+        };
+        event_loop.set_control_flow(ControlFlow::WaitUntil(new_time_frame.min(new_time_sim)));
 
         // Get the window and id
         let window = match &self.window {
@@ -188,16 +307,25 @@ impl MainLoop {
             }
         };
 
-        // Update the camera
-        if self.camera.update_transform() {
-            window.get_window().request_redraw();
+        // Handle frame iteration
+        if forward_frame {
+            // Update the camera
+            if self.camera.update_transform() {
+                window.get_window().request_redraw();
+            }
         }
 
         // Update the simulation
-        if self.iterate_simulation {
+        if self.iterate_simulation || forward_sim {
             self.iterate_simulation = false;
             self.update_image = true;
-            // TODO: Add map update
+            self.redraw_simulation = true;
+            self.map.step();
+        }
+
+        // Request a redraw because of the simulation
+        if forward_frame && self.redraw_simulation {
+            self.redraw_simulation = false;
             window.get_window().request_redraw();
         }
     }
@@ -286,17 +414,30 @@ impl MainLoop {
                 y: 0.0,
             });
 
-        // Do rendering
+        // Clear the screen
         window.graphics_state.clear(&window.render_state, &view);
+
+        // Render the sun
         window
             .graphics_state
-            .render(&window.render_state, &view, &transform);
+            .render_sun(&window.render_state, &view, &transform_neg);
         window
             .graphics_state
-            .render(&window.render_state, &view, &transform_pos);
+            .render_sun(&window.render_state, &view, &transform_pos);
         window
             .graphics_state
-            .render(&window.render_state, &view, &transform_neg);
+            .render_sun(&window.render_state, &view, &transform);
+
+        // Render the background of the tiles
+        window
+            .graphics_state
+            .render_tiles_background(&window.render_state, &view, &transform_neg);
+        window
+            .graphics_state
+            .render_tiles_background(&window.render_state, &view, &transform_pos);
+        window
+            .graphics_state
+            .render_tiles_background(&window.render_state, &view, &transform);
 
         // Show to screen
         output_texture.present();
@@ -365,6 +506,50 @@ impl MainLoop {
                         // Close the application
                         event_loop.exit();
                     }
+                    KeyCode::Space => {
+                        // Toggle the simulation
+                        self.run_simulation = !self.run_simulation;
+                    }
+                    KeyCode::Digit1 => {
+                        // Go to background display mode 0
+                        self.change_mode_background(&ChangeMode::Id(0));
+                    }
+                    KeyCode::Digit2 => {
+                        // Go to background display mode 1
+                        self.change_mode_background(&ChangeMode::Id(1));
+                    }
+                    KeyCode::Digit3 => {
+                        // Go to background display mode 2
+                        self.change_mode_background(&ChangeMode::Id(2));
+                    }
+                    KeyCode::Digit4 => {
+                        // Go to background display mode 3
+                        self.change_mode_background(&ChangeMode::Id(3));
+                    }
+                    KeyCode::Digit5 => {
+                        // Go to background display mode 4
+                        self.change_mode_background(&ChangeMode::Id(4));
+                    }
+                    KeyCode::Digit6 => {
+                        // Go to background display mode 5
+                        self.change_mode_background(&ChangeMode::Id(5));
+                    }
+                    KeyCode::Digit7 => {
+                        // Go to background display mode 6
+                        self.change_mode_background(&ChangeMode::Id(6));
+                    }
+                    KeyCode::Digit8 => {
+                        // Go to background display mode 7
+                        self.change_mode_background(&ChangeMode::Id(7));
+                    }
+                    KeyCode::Digit9 => {
+                        // Go to background display mode 8
+                        self.change_mode_background(&ChangeMode::Id(8));
+                    }
+                    KeyCode::Digit0 => {
+                        // Go to background display mode 9
+                        self.change_mode_background(&ChangeMode::Id(9));
+                    }
                     _ => (),
                 },
             };
@@ -376,7 +561,16 @@ impl MainLoop {
                 PhysicalKey::Unidentified(_) => (),
                 PhysicalKey::Code(code) => match code {
                     KeyCode::Enter => {
+                        // Forward the simulation once
                         self.iterate_simulation = true;
+                    }
+                    KeyCode::ArrowRight => {
+                        // Go to the next background display mode
+                        self.change_mode_background(&ChangeMode::Next);
+                    }
+                    KeyCode::ArrowLeft => {
+                        // Go to the previous background display mode
+                        self.change_mode_background(&ChangeMode::Prev);
                     }
                     _ => (),
                 },
@@ -388,7 +582,7 @@ impl MainLoop {
             let window = match &self.window {
                 Some(window) => window,
                 None => {
-                    eprintln!("Cannot process draw window because window is not initialized");
+                    eprintln!("Cannot get window because it is not initialized");
                     return;
                 }
             };
@@ -447,18 +641,15 @@ impl ApplicationHandler for MainLoop {
             }
         };
 
+        // Set the color map for the background
+        self.set_color_map_background();
+
+        // Set the grid layout and color map for the sun
         let window = self.window.as_mut().expect("Should never happen");
 
-        // Set the grid layout and color map
-        window.get_graphics_state().set_color_map_tiles_background(
+        window.get_graphics_state().set_color_map(
             &window.render_state,
-            &self
-                .settings_shader
-                .input_settings
-                .color_map_tiles_background,
-        );
-        window.get_graphics_state().set_color_map_sun(
-            &window.render_state,
+            &graphics::InstanceType::Sun,
             &self.settings_shader.input_settings.color_map_sun,
         );
         window
@@ -509,6 +700,17 @@ impl ApplicationHandler for MainLoop {
     }
 }
 
+/// Describes how to change the display mode
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ChangeMode {
+    /// Change to the next mode
+    Next,
+    /// Change to the previous mode
+    Prev,
+    /// Change to a specific mode
+    Id(usize),
+}
+
 /// All input settings for how to open and display a window
 #[derive(Clone, Debug)]
 pub struct WindowSettingsInput {
@@ -534,8 +736,8 @@ pub struct WindowSettings {
 /// All input settings for the shader
 #[derive(Clone, Debug)]
 pub struct ShaderSettingsInput {
-    /// The color map for the background of the tiles
-    pub color_map_tiles_background: graphics::ColorMap,
+    /// The color maps for the background of the tiles
+    pub color_map_tiles_background: [graphics::ColorMap; map::DataModeBackground::COUNT],
     /// The color map for the sun
     pub color_map_sun: graphics::ColorMap,
 }
@@ -554,13 +756,17 @@ pub struct ShaderSettings {
 pub struct ViewerSettingsInput {
     /// The framerate of the application
     pub framerate: f64,
+    /// The number of simulation steps per second
+    pub sim_rate: f64,
+    /// The multiplier when speeding up or slowing down the simulation
+    pub sim_rate_mod: f64,
 }
 
 /// All settings how to view the app
 #[derive(Clone, Debug)]
 pub struct ViewerSettings {
-    /// The framerate of the application
-    pub framerate: f64,
+    /// The input settings
+    pub input_settings: ViewerSettingsInput,
     /// The home view for the camera
     pub home_view: types::View,
 }
