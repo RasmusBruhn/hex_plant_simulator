@@ -58,6 +58,8 @@ pub struct MainLoop {
     next_frame_time: Instant,
     /// The next time the simulation must step
     next_sim_time: Instant,
+    /// True if left shift is pressed down
+    left_shift_active: bool,
 }
 
 impl MainLoop {
@@ -123,6 +125,7 @@ impl MainLoop {
             redraw_simulation: false,
             next_frame_time: Instant::now(),
             next_sim_time: Instant::now(),
+            left_shift_active: false,
         };
     }
 
@@ -275,11 +278,12 @@ impl MainLoop {
                 (1e6 / self.settings_viewer.input_settings.framerate).floor() as u64,
             );
             let new_time = requested_resume + duration;
-            if new_time < now_time {
-                (now_time + duration, true)
+            self.next_frame_time = if new_time < now_time {
+                now_time + duration
             } else {
-                (new_time, true)
-            }
+                new_time
+            };
+            (self.next_frame_time, true)
         };
         let (new_time_sim, forward_sim) = if !self.run_simulation {
             (new_time_frame, false)
@@ -290,11 +294,12 @@ impl MainLoop {
                 (1e6 / self.settings_viewer.input_settings.sim_rate).floor() as u64,
             );
             let new_time = requested_resume + duration;
-            if new_time < now_time {
-                (now_time + duration, true)
+            self.next_sim_time = if new_time < now_time {
+                now_time + duration
             } else {
-                (new_time, true)
-            }
+                new_time
+            };
+            (self.next_sim_time, true)
         };
         event_loop.set_control_flow(ControlFlow::WaitUntil(new_time_frame.min(new_time_sim)));
 
@@ -487,9 +492,7 @@ impl MainLoop {
         _is_synthetic: bool,
     ) {
         // Handle camera events, stop if input was captured
-        if self.camera.apply_key(&event) {
-            return;
-        }
+        _ = self.camera.apply_key(&event);
 
         // Handle all non-repeating pressed keys
         let mut update = false;
@@ -509,6 +512,20 @@ impl MainLoop {
                     KeyCode::Space => {
                         // Toggle the simulation
                         self.run_simulation = !self.run_simulation;
+                    }
+                    KeyCode::Tab => {
+                        // Change the speed of the simulation
+                        if self.left_shift_active {
+                            self.settings_viewer.input_settings.sim_rate /=
+                                self.settings_viewer.input_settings.sim_rate_mod;
+                        } else {
+                            self.settings_viewer.input_settings.sim_rate *=
+                                self.settings_viewer.input_settings.sim_rate_mod;
+                        }
+                    }
+                    KeyCode::ShiftLeft => {
+                        // Toggle the shift key
+                        self.left_shift_active = true;
                     }
                     KeyCode::Digit1 => {
                         // Go to background display mode 0
@@ -549,6 +566,19 @@ impl MainLoop {
                     KeyCode::Digit0 => {
                         // Go to background display mode 9
                         self.change_mode_background(&ChangeMode::Id(9));
+                    }
+                    _ => (),
+                },
+            };
+        }
+
+        if event.state == ElementState::Released && !event.repeat {
+            match event.physical_key {
+                PhysicalKey::Unidentified(_) => (),
+                PhysicalKey::Code(code) => match code {
+                    KeyCode::ShiftLeft => {
+                        // Toggle the shift key
+                        self.left_shift_active = false;
                     }
                     _ => (),
                 },
