@@ -27,41 +27,40 @@ fn main() {
         .with_zoom_limits(constants::CAMERA_ZOOM_LIMITS);
     let camera = camera::Camera::new(camera_settings, camera_transform);
 
+    // Setup the shader settings
+    let color_map_sun = types::ColorMap {
+        saturated: constants::COLOR_MAP_SUN_SATURATED,
+        empty: constants::COLOR_MAP_SUN_EMPTY,
+    };
+    let color_map_background_transparency = types::ColorMap {
+        saturated: constants::COLOR_MAP_BACKGROUND_SATURATED,
+        empty: constants::COLOR_MAP_BACKGROUND_EMPTY,
+    };
+    let color_map_background_light = types::ColorMap {
+        saturated: constants::COLOR_MAP_SUN_SATURATED,
+        empty: constants::COLOR_MAP_SUN_EMPTY,
+    };
+    let color_maps_background = map::DataModeBackground::new_color_map_collection(
+        color_map_background_transparency,
+        color_map_background_light,
+    );
+
     // Set window settings
     let name = format!("{crate_name} v{crate_version}");
     let size = PhysicalSize::new(500, 500);
     let color_background = constants::COLOR_BACKGROUND;
-    let mode_tiles_background = map::DataModeBackground::Light;
+    let mode_background = constants::COLOR_MODE_BACKGROUND;
+    let active_color_maps =
+        graphics::InstanceType::new_color_map_collection(color_map_sun, color_maps_background);
     let graphics_settings = graphics::Settings {
-        color_background,
-        mode_tiles_background,
+        color_clear: color_background,
+        mode_background,
+        color_maps: active_color_maps,
     };
     let settings_window = application::WindowSettingsInput {
         name,
         size,
         graphics_settings,
-    };
-
-    // Setup the shader settings
-    let color_map_tiles_background_transparency = graphics::ColorMap {
-        saturated: constants::COLOR_MAP_TILES_BACKGROUND_SATURATED,
-        empty: constants::COLOR_MAP_TILES_BACKGROUND_EMPTY,
-    };
-    let color_map_tiles_background_light = graphics::ColorMap {
-        saturated: constants::COLOR_MAP_SUN_SATURATED,
-        empty: constants::COLOR_MAP_SUN_EMPTY,
-    };
-    let color_map_tiles_background = map::DataModeBackground::new_color_map_collection(
-        color_map_tiles_background_transparency,
-        color_map_tiles_background_light,
-    );
-    let color_map_sun = graphics::ColorMap {
-        saturated: constants::COLOR_MAP_SUN_SATURATED,
-        empty: constants::COLOR_MAP_SUN_EMPTY,
-    };
-    let settings_shader = application::ShaderSettingsInput {
-        color_map_tiles_background,
-        color_map_sun,
     };
 
     // Setup the viewer settings
@@ -81,13 +80,8 @@ fn main() {
     let map_data = map::Map::new(constants::MAP_SIZE, map_settings);
 
     // Setup the main loop
-    let mut main_loop = application::MainLoop::new(
-        map_data,
-        camera,
-        settings_window,
-        settings_shader,
-        settings_viewer,
-    );
+    let mut main_loop =
+        application::MainLoop::new(map_data, camera, settings_window, settings_viewer);
 
     // Run the application
     application::run(&mut main_loop);

@@ -7,7 +7,7 @@ use winit::{
 use super::types;
 
 /// Describes a how the camera is moving
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Camera {
     /// All the settings
     settings: CameraSettings,
@@ -56,9 +56,14 @@ impl Camera {
         return &self.settings;
     }
 
-    /// Constructs a mutator for the settings
-    pub fn get_settings_mut(&mut self) -> CameraSettingsMut {
-        return CameraSettingsMut { camera: self };
+    /// Sets new settings for the camera
+    ///
+    /// # Parameters
+    ///
+    /// settings: The new settings to set
+    pub fn set_settings(&mut self, settings: CameraSettings) {
+        self.settings = settings;
+        self.reload_transform();
     }
 
     /// Attempts to use a key press from a key event, if the key press is used,
@@ -243,34 +248,8 @@ impl Camera {
     }
 }
 
-/// A mutator for the camera settings, the transform for the camera is
-/// reloaded once the mutator is dropped
-#[derive(Debug)]
-pub struct CameraSettingsMut<'cam> {
-    camera: &'cam mut Camera,
-}
-
-impl<'map> CameraSettingsMut<'map> {
-    /// Retrieves a reference to the settings
-    pub fn get(&self) -> &CameraSettings {
-        return &self.camera.settings;
-    }
-
-    /// Retrieves a mutable reference to the settings
-    pub fn get_mut(&mut self) -> &mut CameraSettings {
-        return &mut self.camera.settings;
-    }
-}
-
-impl<'map> Drop for CameraSettingsMut<'map> {
-    fn drop(&mut self) {
-        // Force update the camera transform
-        self.camera.reload_transform();
-    }
-}
-
 /// All settings for a camera
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CameraSettings {
     /// The speed of movement
     pub speed_move: f64,
@@ -350,9 +329,9 @@ impl CameraSettings {
     }
 
     /// Changes the map width and returns the updated object
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// width: The map width
     pub fn with_map_width(mut self, width: f64) -> Self {
         self.map_width = width;

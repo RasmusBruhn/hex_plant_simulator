@@ -1,14 +1,14 @@
 use std::mem;
 
-use crate::{constants, graphics, types};
+use crate::{constants, types};
 
 /// The display mode for the background of a tile
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DataModeBackground {
-    /// Display the transparency value of the tile
-    Transparency,
     /// Display the light level of the tile
     Light,
+    /// Display the transparency value of the tile
+    Transparency,
 }
 
 impl DataModeBackground {
@@ -17,8 +17,8 @@ impl DataModeBackground {
     /// The id to the mode in a list of all modes
     pub fn id(&self) -> usize {
         return match self {
-            Self::Transparency => 0,
-            Self::Light => 1,
+            Self::Light => 0,
+            Self::Transparency => 1,
         };
     }
 
@@ -29,10 +29,10 @@ impl DataModeBackground {
     /// id: The id to construct from
     pub fn from_id(id: usize) -> Self {
         return match id.clamp(0, Self::COUNT - 1) {
-            0 => Self::Transparency,
-            1 => Self::Light,
+            0 => Self::Light,
+            1 => Self::Transparency,
             _ => panic!("DataModeBackground::from_id has not been updated"),
-        }
+        };
     }
 
     /// Gets the next mode
@@ -53,10 +53,10 @@ impl DataModeBackground {
     ///
     /// light: The color map for light mode
     pub fn new_color_map_collection(
-        transparency: graphics::ColorMap,
-        light: graphics::ColorMap,
-    ) -> [graphics::ColorMap; Self::COUNT] {
-        return [transparency, light];
+        transparency: types::ColorMap,
+        light: types::ColorMap,
+    ) -> [types::ColorMap; Self::COUNT] {
+        return [light, transparency];
     }
 }
 

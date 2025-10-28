@@ -109,19 +109,9 @@ impl RenderState {
         &self.device
     }
 
-    /// Get a mutable refence to the device
-    pub fn get_device_mut(&mut self) -> &mut wgpu::Device {
-        &mut self.device
-    }
-
     /// The a reference to the queue
     pub fn get_queue(&self) -> &wgpu::Queue {
         &self.queue
-    }
-
-    /// Get a mutable reference to the queue
-    pub fn get_queue_mut(&mut self) -> &mut wgpu::Queue {
-        &mut self.queue
     }
 
     /// Get a reference to the surface
@@ -129,19 +119,9 @@ impl RenderState {
         &self.surface
     }
 
-    /// Get a mutable reference to the surface
-    pub fn get_surface_mut(&mut self) -> &'static mut wgpu::Surface {
-        &mut self.surface
-    }
-
     /// Get a reference to the configs
     pub fn get_config(&self) -> &wgpu::SurfaceConfiguration {
         &self.config
-    }
-
-    /// Get a mutable reference to the configs
-    pub fn get_config_mut(&mut self) -> &mut wgpu::SurfaceConfiguration {
-        &mut self.config
     }
 }
 

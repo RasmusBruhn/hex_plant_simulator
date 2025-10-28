@@ -80,11 +80,13 @@ impl MainLoop {
         map: map::Map,
         mut camera: camera::Camera,
         settings_window: WindowSettingsInput,
-        settings_shader: ShaderSettingsInput,
         settings_viewer: ViewerSettingsInput,
     ) -> Self {
         // Set the width of the map in the camera
-        camera.get_settings_mut().get_mut().map_width = map.get_size().w as f64;
+        let camera_settings = camera
+            .get_settings()
+            .with_map_width(map.get_size().w as f64);
+        camera.set_settings(camera_settings);
 
         // Create the window settings
         let settings_window = WindowSettings {
@@ -95,7 +97,6 @@ impl MainLoop {
 
         // Create the shader settings
         let settings_shader = ShaderSettings {
-            input_settings: settings_shader,
             grid_layout: map.get_grid_layout(),
         };
 
@@ -108,7 +109,9 @@ impl MainLoop {
             types::Size::new(map.get_size().w as f64, map.get_size().h as f64),
         );
         let settings_viewer = ViewerSettings {
-            input_settings: settings_viewer,
+            framerate: settings_viewer.framerate,
+            sim_rate: settings_viewer.sim_rate,
+            sim_rate_mod: settings_viewer.sim_rate_mod,
             home_view,
         };
 
@@ -161,9 +164,13 @@ impl MainLoop {
         self.camera.set_transform(transform);
     }
 
-    /// Updates the color map for the background based on the set settings
-    fn set_color_map_background(&self) {
-        let window = match &self.window {
+    /// Sets the graphics settings
+    ///
+    /// # Parameters
+    ///
+    /// settings: The settings to set
+    fn set_graphics_settings(&mut self, settings: graphics::Settings) {
+        let window = match &mut self.window {
             Some(window) => window,
             None => {
                 eprintln!("Cannot get window because it is not initialized");
@@ -171,20 +178,12 @@ impl MainLoop {
             }
         };
 
-        window.get_graphics_state().set_color_map(
+        self.settings_window.graphics_settings = settings;
+        window.graphics_state.set_settings(
             &window.render_state,
-            &graphics::InstanceType::GridBackground(
-                window.graphics_state.get_settings().mode_tiles_background,
-            ),
-            &self
-                .settings_shader
-                .input_settings
-                .color_map_tiles_background[window
-                .get_graphics_state()
-                .get_settings()
-                .mode_tiles_background
-                .id()],
+            self.settings_window.graphics_settings.clone(),
         );
+        window.window.request_redraw();
     }
 
     /// Changes the display mode for the background
@@ -194,6 +193,19 @@ impl MainLoop {
     /// mode: The way to change the display mode
     fn change_mode_background(&mut self, mode: &ChangeMode) {
         {
+            // Set the display mode
+            let old_graphics_settings = &self.settings_window.graphics_settings;
+            let graphics_settings =
+                old_graphics_settings
+                    .clone()
+                    .with_mode_background(match mode {
+                        ChangeMode::Next => old_graphics_settings.mode_background.next(),
+                        ChangeMode::Prev => old_graphics_settings.mode_background.prev(),
+                        ChangeMode::Id(id) => map::DataModeBackground::from_id(*id),
+                    });
+            self.set_graphics_settings(graphics_settings);
+
+            // Update the map
             let window = match &mut self.window {
                 Some(window) => window,
                 None => {
@@ -202,33 +214,11 @@ impl MainLoop {
                 }
             };
 
-            // Set the display mode
             window
-                .get_graphics_state_mut()
-                .get_settings_mut()
-                .mode_tiles_background = match mode {
-                ChangeMode::Next => window
-                    .get_graphics_state()
-                    .get_settings()
-                    .mode_tiles_background
-                    .next(),
-                ChangeMode::Prev => window
-                    .get_graphics_state()
-                    .get_settings()
-                    .mode_tiles_background
-                    .prev(),
-                ChangeMode::Id(id) => map::DataModeBackground::from_id(*id),
-            };
-            window.get_window().request_redraw();
-
-            // Update the map
-            window
-                .get_graphics_state()
-                .update_map(&window.get_render_state(), &self.map);
+                .graphics_state
+                .update_map(&window.render_state, &self.map);
         }
 
-        // Set the new color map
-        self.set_color_map_background();
         self.request_redraw();
     }
 
@@ -242,7 +232,7 @@ impl MainLoop {
             }
         };
 
-        window.get_window().request_redraw();
+        window.window.request_redraw();
     }
 
     /// Handles the initialization of the game loop
@@ -274,9 +264,8 @@ impl MainLoop {
         let (new_time_frame, forward_frame) = if now_time < self.next_frame_time {
             (self.next_frame_time, false)
         } else {
-            let duration = Duration::from_micros(
-                (1e6 / self.settings_viewer.input_settings.framerate).floor() as u64,
-            );
+            let duration =
+                Duration::from_micros((1e6 / self.settings_viewer.framerate).floor() as u64);
             let new_time = requested_resume + duration;
             self.next_frame_time = if new_time < now_time {
                 now_time + duration
@@ -290,9 +279,8 @@ impl MainLoop {
         } else if now_time < self.next_sim_time {
             (self.next_sim_time, false)
         } else {
-            let duration = Duration::from_micros(
-                (1e6 / self.settings_viewer.input_settings.sim_rate).floor() as u64,
-            );
+            let duration =
+                Duration::from_micros((1e6 / self.settings_viewer.sim_rate).floor() as u64);
             let new_time = requested_resume + duration;
             self.next_sim_time = if new_time < now_time {
                 now_time + duration
@@ -316,7 +304,7 @@ impl MainLoop {
         if forward_frame {
             // Update the camera
             if self.camera.update_transform() {
-                window.get_window().request_redraw();
+                window.window.request_redraw();
             }
         }
 
@@ -331,7 +319,7 @@ impl MainLoop {
         // Request a redraw because of the simulation
         if forward_frame && self.redraw_simulation {
             self.redraw_simulation = false;
-            window.get_window().request_redraw();
+            window.window.request_redraw();
         }
     }
 
@@ -386,16 +374,12 @@ impl MainLoop {
         if self.update_image {
             self.update_image = false;
             window
-                .get_graphics_state()
-                .update_map(window.get_render_state(), &mut self.map);
+                .graphics_state
+                .update_map(&window.render_state, &mut self.map);
         }
 
         // Get the current view
-        let output_texture = match window
-            .get_render_state()
-            .get_surface()
-            .get_current_texture()
-        {
+        let output_texture = match window.render_state.get_surface().get_current_texture() {
             Ok(value) => value,
             Err(error) => {
                 eprintln!("Unable to get texture: {:?}", error);
@@ -423,26 +407,44 @@ impl MainLoop {
         window.graphics_state.clear(&window.render_state, &view);
 
         // Render the sun
-        window
-            .graphics_state
-            .render_sun(&window.render_state, &view, &transform_neg);
-        window
-            .graphics_state
-            .render_sun(&window.render_state, &view, &transform_pos);
-        window
-            .graphics_state
-            .render_sun(&window.render_state, &view, &transform);
+        window.graphics_state.render(
+            &window.render_state,
+            &view,
+            &transform_neg,
+            &graphics::InstanceType::Sun,
+        );
+        window.graphics_state.render(
+            &window.render_state,
+            &view,
+            &transform_pos,
+            &graphics::InstanceType::Sun,
+        );
+        window.graphics_state.render(
+            &window.render_state,
+            &view,
+            &transform,
+            &graphics::InstanceType::Sun,
+        );
 
         // Render the background of the tiles
-        window
-            .graphics_state
-            .render_tiles_background(&window.render_state, &view, &transform_neg);
-        window
-            .graphics_state
-            .render_tiles_background(&window.render_state, &view, &transform_pos);
-        window
-            .graphics_state
-            .render_tiles_background(&window.render_state, &view, &transform);
+        window.graphics_state.render(
+            &window.render_state,
+            &view,
+            &transform_neg,
+            &graphics::InstanceType::GridBackground,
+        );
+        window.graphics_state.render(
+            &window.render_state,
+            &view,
+            &transform_pos,
+            &graphics::InstanceType::GridBackground,
+        );
+        window.graphics_state.render(
+            &window.render_state,
+            &view,
+            &transform,
+            &graphics::InstanceType::GridBackground,
+        );
 
         // Show to screen
         output_texture.present();
@@ -466,7 +468,7 @@ impl MainLoop {
         self.window
             .as_mut()
             .expect("Should not happen")
-            .get_render_state_mut()
+            .render_state
             .resize(size);
 
         // Update the camera
@@ -516,11 +518,9 @@ impl MainLoop {
                     KeyCode::Tab => {
                         // Change the speed of the simulation
                         if self.left_shift_active {
-                            self.settings_viewer.input_settings.sim_rate /=
-                                self.settings_viewer.input_settings.sim_rate_mod;
+                            self.settings_viewer.sim_rate /= self.settings_viewer.sim_rate_mod;
                         } else {
-                            self.settings_viewer.input_settings.sim_rate *=
-                                self.settings_viewer.input_settings.sim_rate_mod;
+                            self.settings_viewer.sim_rate *= self.settings_viewer.sim_rate_mod;
                         }
                     }
                     KeyCode::ShiftLeft => {
@@ -616,7 +616,7 @@ impl MainLoop {
                     return;
                 }
             };
-            window.get_window().request_redraw();
+            window.window.request_redraw();
         }
     }
 
@@ -659,7 +659,7 @@ impl ApplicationHandler for MainLoop {
         // Add a render state
         self.window = match pollster::block_on(RenderedWindow::new(
             window,
-            self.settings_window.graphics_settings,
+            self.settings_window.graphics_settings.clone(),
             &mut self.map,
         )) {
             Ok(value) => Some(value),
@@ -671,19 +671,15 @@ impl ApplicationHandler for MainLoop {
             }
         };
 
-        // Set the color map for the background
-        self.set_color_map_background();
-
-        // Set the grid layout and color map for the sun
+        // Set the grid layout and reload the graphics settings
         let window = self.window.as_mut().expect("Should never happen");
 
-        window.get_graphics_state().set_color_map(
+        window.graphics_state.set_settings(
             &window.render_state,
-            &graphics::InstanceType::Sun,
-            &self.settings_shader.input_settings.color_map_sun,
+            self.settings_window.graphics_settings.clone(),
         );
         window
-            .get_graphics_state()
+            .graphics_state
             .set_grid_layout(&window.render_state, &self.settings_shader.grid_layout);
     }
 
@@ -703,7 +699,7 @@ impl ApplicationHandler for MainLoop {
         };
 
         // Find the correct window and handle event correspondingly
-        if window_id == window.get_window().id() {
+        if window_id == window.window.id() {
             self.main_window_event(event_loop, event);
         }
     }
@@ -763,20 +759,9 @@ pub struct WindowSettings {
     pub graphics_settings: graphics::Settings,
 }
 
-/// All input settings for the shader
-#[derive(Clone, Debug)]
-pub struct ShaderSettingsInput {
-    /// The color maps for the background of the tiles
-    pub color_map_tiles_background: [graphics::ColorMap; map::DataModeBackground::COUNT],
-    /// The color map for the sun
-    pub color_map_sun: graphics::ColorMap,
-}
-
 /// All settings for the shader
 #[derive(Clone, Debug)]
 pub struct ShaderSettings {
-    /// All input settings
-    pub input_settings: ShaderSettingsInput,
     /// The layout of the grid for displaying
     pub grid_layout: map::GridLayout,
 }
@@ -795,14 +780,18 @@ pub struct ViewerSettingsInput {
 /// All settings how to view the app
 #[derive(Clone, Debug)]
 pub struct ViewerSettings {
-    /// The input settings
-    pub input_settings: ViewerSettingsInput,
+    /// The framerate of the application
+    pub framerate: f64,
+    /// The number of simulation steps per second
+    pub sim_rate: f64,
+    /// The multiplier when speeding up or slowing down the simulation
+    pub sim_rate_mod: f64,
     /// The home view for the camera
     pub home_view: types::View,
 }
 
 /// A window with an assosciated render state
-pub struct RenderedWindow {
+struct RenderedWindow {
     /// The window, it must be in an Arc because it is shared with the render state
     window: Arc<Window>,
     /// The render state to render onto the window
@@ -835,30 +824,5 @@ impl RenderedWindow {
             render_state,
             graphics_state,
         });
-    }
-
-    /// Retrieves a reference to the render state
-    pub fn get_render_state(&self) -> &render::RenderState {
-        return &self.render_state;
-    }
-
-    /// Retrieves a mutable reference to the render state
-    pub fn get_render_state_mut(&mut self) -> &mut render::RenderState {
-        return &mut self.render_state;
-    }
-
-    /// Retrieves a reference to the graphics state
-    pub fn get_graphics_state(&self) -> &graphics::State {
-        return &self.graphics_state;
-    }
-
-    /// Retrieves a mutable reference to the graphics state
-    pub fn get_graphics_state_mut(&mut self) -> &mut graphics::State {
-        return &mut self.graphics_state;
-    }
-
-    /// Retrieves a reference to the window
-    pub fn get_window(&self) -> &Window {
-        return &self.window;
     }
 }
