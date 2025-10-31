@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use dyn_clone::DynClone;
+
 /// Describes a single RGBA color
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {
@@ -65,7 +67,7 @@ impl Color {
 }
 
 /// Defines a color map which can export a list of 256 colors defining the map
-pub trait ColorMap: Debug {
+pub trait ColorMap: DynClone + Debug {
     /// Returns whether or not the color map is continuous and interpolation can
     /// be used
     fn get_continuous(&self) -> bool {
@@ -84,13 +86,13 @@ pub trait ColorMap: Debug {
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
+        let flags = [(self.get_continuous() as u32) & 1, 0, 0, 0];
 
-        return UniformColorMap {
-            colors,
-            continuous: self.get_continuous() as u32,
-        };
+        return UniformColorMap { colors };
     }
 }
+
+dyn_clone::clone_trait_object!(ColorMap);
 
 /// All data for the color map uniform
 #[repr(C)]
@@ -98,8 +100,10 @@ pub trait ColorMap: Debug {
 pub struct UniformColorMap {
     /// The full spectrum of colors
     pub colors: [[f32; 4]; 256],
-    /// If 0 then the color is snapped to the closest of the 256, else interpolation is used
-    pub continuous: u32,
+    // All flags for the uniform, must be this big due to sizing in wgsl
+    //
+    // 0: If set then it is continuous
+    //pub flags: [u32; 4],
 }
 
 /// A color map with linear spacing in RGBA space between two colors

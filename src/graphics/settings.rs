@@ -2,7 +2,7 @@ use super::InstanceType;
 use crate::{map, types};
 
 /// All non-gpu settings for rendering
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Settings {
     /// The screen clear color
     pub color_clear: types::Color,
@@ -44,7 +44,7 @@ impl Settings {
     /// instance: The instance type to set the color map for
     pub fn with_color_map(
         mut self,
-        color_map: Vec<types::ColorMap>,
+        color_map: Vec<Box<dyn types::ColorMap>>,
         instance: &InstanceType,
     ) -> Self {
         self.color_maps[instance.id()] = color_map;

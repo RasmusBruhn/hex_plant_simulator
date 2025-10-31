@@ -163,11 +163,11 @@ impl InstanceMode {
         &self,
         collection: &[(BufferInstance, UniformsInstance); Self::COUNT],
         render_state: &render::RenderState,
-        color_maps: &[types::ColorMap],
+        color_maps: &[Box<dyn types::ColorMap>],
     ) {
         collection[self.id()]
             .1
-            .write_color_map(render_state, &color_maps[self.mode_id()]);
+            .write_color_map(render_state, color_maps[self.mode_id()].as_ref());
     }
 
     /// Update the color maps for the entire collection of instances, this must be run once before the first rendering as it is not initialized
@@ -184,7 +184,7 @@ impl InstanceMode {
     pub(super) fn write_color_map_collection(
         collection: &[(BufferInstance, UniformsInstance); Self::COUNT],
         render_state: &render::RenderState,
-        color_maps: &[Vec<types::ColorMap>; Self::COUNT],
+        color_maps: &[Vec<Box<dyn types::ColorMap>>; Self::COUNT],
         mode_background: map::DataModeBackground,
     ) {
         for instance in Self::all_instances(mode_background).iter() {
@@ -227,10 +227,10 @@ impl InstanceType {
     ///
     /// background: The color map for all modes of the background of the grid
     pub fn new_color_map_collection(
-        sun: types::ColorMap,
-        background: [types::ColorMap; map::DataModeBackground::COUNT],
-    ) -> [Vec<types::ColorMap>; Self::COUNT] {
-        return [vec![sun], background.to_vec()];
+        sun: Box<dyn types::ColorMap>,
+        background: [Box<dyn types::ColorMap>; map::DataModeBackground::COUNT],
+    ) -> [Vec<Box<dyn types::ColorMap>>; Self::COUNT] {
+        return [vec![sun], background.into()];
     }
 
     /// Gets the primitive type used for this instance
@@ -481,7 +481,7 @@ impl UniformsInstance {
     /// render_state: The render state to use for rendering
     ///
     /// color_map: The data for the color map
-    fn write_color_map(&self, render_state: &render::RenderState, color_map: &types::ColorMap) {
+    fn write_color_map(&self, render_state: &render::RenderState, color_map: &dyn types::ColorMap) {
         render_state.get_queue().write_buffer(
             &self.color_map,
             0,

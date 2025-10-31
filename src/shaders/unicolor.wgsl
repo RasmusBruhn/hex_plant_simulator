@@ -31,8 +31,10 @@ struct Transform2D {
 struct ColorMap {
     // The full list of colors for the color map
     colors: array<vec4<f32>, 256>,
-    // If 0 then the color is snapped to the closest of the 256, else interpolation is used
-    continuous: u32,
+    // All flags for the uniform, must be this big due to sizing in wgsl
+    //
+    // 0: If set then it is continuous
+    //flags: vec4<u32>,
 }
 
 // All information on the layout of the grid
@@ -82,25 +84,25 @@ fn vs_main(
 fn fs_main(
     in: VertexOutput
 ) -> @location(0) vec4<f32> {
-    // Snap the color value
-    if (in.color_value < 0.0) {
-        in.color_value = 0.0;
-    }
-    if (in.color_value > 1.0) {
-        in.color_value = 1.0;
+    // Check if the color map is continuous
+    let continuous = true;//(color_map.flags.x & 1u) != 0u;
+
+    // Clamp the color value to avoid overflow
+    let color_value = clamp(in.color_value, 0.0, 1.0);
+
+    // Handle non-continuous color maps by snapping
+    if (!continuous) {
+        let color_index = u32(color_value * 255.0 + 0.5);
+        return color_map.colors[color_index];
     }
 
-    // Handle continuous and non-continuous color maps differently
-    if (color_map.continuous == 0) {
-        let color_index = u32(in.color_value * 255.0 + 0.5);
+    // Handle continuous color maps
+    let color_index = u32(color_value * 255.0);
+    let color_ratio = color_value - f32(color_index);
+
+    // Handle the max value differently
+    if (color_index == 255u) {
         return color_map.colors[color_index];
-    } else {
-        let color_index = u32(in.color_value * 255.0);
-        let color_ratio = in.color_value - f32(color_index);
-        if (color_index == 255) {
-            color_index = 254;
-            color_ratio = 1.0;
-        }
-        return color_ratio * color_map.colors[color_index + 1] + (1.0 - color_ratio) * color_map.colors[color_index];
     }
+    return color_ratio * color_map.colors[color_index + 1u] + (1.0 - color_ratio) * color_map.colors[color_index];
 }

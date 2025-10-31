@@ -28,18 +28,10 @@ fn main() {
     let camera = camera::Camera::new(camera_settings, camera_transform);
 
     // Setup the shader settings
-    let color_map_sun = types::ColorMap {
-        saturated: constants::COLOR_MAP_SUN_SATURATED,
-        empty: constants::COLOR_MAP_SUN_EMPTY,
-    };
-    let color_map_background_transparency = types::ColorMap {
-        saturated: constants::COLOR_MAP_BACKGROUND_SATURATED,
-        empty: constants::COLOR_MAP_BACKGROUND_EMPTY,
-    };
-    let color_map_background_light = types::ColorMap {
-        saturated: constants::COLOR_MAP_SUN_SATURATED,
-        empty: constants::COLOR_MAP_SUN_EMPTY,
-    };
+    let color_map_sun: Box<dyn types::ColorMap> = Box::new(constants::COLOR_MAP_LIGHT);
+    let color_map_background_transparency: Box<dyn types::ColorMap> =
+        Box::new(constants::COLOR_MAP_TRANSPARENCY);
+    let color_map_background_light: Box<dyn types::ColorMap> = Box::new(constants::COLOR_MAP_LIGHT);
     let color_maps_background = map::DataModeBackground::new_color_map_collection(
         color_map_background_light,
         color_map_background_transparency,
