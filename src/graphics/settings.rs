@@ -7,7 +7,7 @@ pub struct Settings {
     /// The screen clear color
     pub color_clear: types::Color,
     /// The color maps for all the instance types
-    pub color_maps: [Vec<types::ColorMap>; InstanceType::COUNT],
+    pub color_maps: [Vec<Box<dyn types::ColorMap>>; InstanceType::COUNT],
     /// The display mode for the background
     pub mode_background: map::DataModeBackground,
 }

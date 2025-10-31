@@ -29,10 +29,10 @@ struct Transform2D {
 
 // All information to do with the color map
 struct ColorMap {
-    // The fully saturated color
-    saturated: vec4<f32>,
-    // The color when it is the least saturated
-    empty: vec4<f32>,
+    // The full list of colors for the color map
+    colors: array<vec4<f32>, 256>,
+    // If 0 then the color is snapped to the closest of the 256, else interpolation is used
+    continuous: u32,
 }
 
 // All information on the layout of the grid
@@ -82,5 +82,25 @@ fn vs_main(
 fn fs_main(
     in: VertexOutput
 ) -> @location(0) vec4<f32> {
-    return color_map.saturated * in.color_value + color_map.empty * (1.0 - in.color_value);
+    // Snap the color value
+    if (in.color_value < 0.0) {
+        in.color_value = 0.0;
+    }
+    if (in.color_value > 1.0) {
+        in.color_value = 1.0;
+    }
+
+    // Handle continuous and non-continuous color maps differently
+    if (color_map.continuous == 0) {
+        let color_index = u32(in.color_value * 255.0 + 0.5);
+        return color_map.colors[color_index];
+    } else {
+        let color_index = u32(in.color_value * 255.0);
+        let color_ratio = in.color_value - f32(color_index);
+        if (color_index == 255) {
+            color_index = 254;
+            color_ratio = 1.0;
+        }
+        return color_ratio * color_map.colors[color_index + 1] + (1.0 - color_ratio) * color_map.colors[color_index];
+    }
 }

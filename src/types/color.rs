@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 /// Describes a single RGBA color
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {
@@ -62,21 +64,30 @@ impl Color {
     }
 }
 
-/// All data for a color map
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct ColorMap {
-    /// The fully saturated color
-    pub saturated: Color,
-    // The color when it is the least saturated
-    pub empty: Color,
-}
+/// Defines a color map which can export a list of 256 colors defining the map
+pub trait ColorMap: Debug {
+    /// Returns whether or not the color map is continuous and interpolation can
+    /// be used
+    fn get_continuous(&self) -> bool {
+        return true;
+    }
 
-impl ColorMap {
-    /// Constructs the shader compatible version off a color map
-    pub fn get_data(&self) -> UniformColorMap {
+    /// Retrieves all the colors for the map
+    fn get_colors(&self) -> [Color; 256];
+
+    /// Retrieves all the colors for the map as shader compatible data
+    fn get_data(&self) -> UniformColorMap {
+        let colors = self
+            .get_colors()
+            .iter()
+            .map(|color| color.get_data())
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+
         return UniformColorMap {
-            saturated: self.saturated.get_data(),
-            empty: self.empty.get_data(),
+            colors,
+            continuous: self.get_continuous() as u32,
         };
     }
 }
@@ -85,8 +96,33 @@ impl ColorMap {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct UniformColorMap {
+    /// The full spectrum of colors
+    pub colors: [[f32; 4]; 256],
+    /// If 0 then the color is snapped to the closest of the 256, else interpolation is used
+    pub continuous: u32,
+}
+
+/// A color map with linear spacing in RGBA space between two colors
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct ColorMapLinearRGBA {
+    /// The color when it is the least saturated
+    pub empty: Color,
     /// The fully saturated color
-    pub saturated: [f32; 4],
-    // The color when it is the least saturated
-    pub empty: [f32; 4],
+    pub saturated: Color,
+}
+
+impl ColorMap for ColorMapLinearRGBA {
+    fn get_colors(&self) -> [Color; 256] {
+        return (0..256)
+            .map(|index| index as f64 / 255.0)
+            .map(|saturation| Color {
+                r: saturation * self.saturated.r + (1.0 - saturation) * self.empty.r,
+                g: saturation * self.saturated.g + (1.0 - saturation) * self.empty.g,
+                b: saturation * self.saturated.b + (1.0 - saturation) * self.empty.b,
+                a: saturation * self.saturated.a + (1.0 - saturation) * self.empty.a,
+            })
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+    }
 }

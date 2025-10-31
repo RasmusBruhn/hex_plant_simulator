@@ -115,7 +115,7 @@ impl RenderState {
     }
 
     /// Get a reference to the surface
-    pub fn get_surface(&self) -> &wgpu::Surface {
+    pub fn get_surface(&self) -> &wgpu::Surface<'_> {
         &self.surface
     }
 

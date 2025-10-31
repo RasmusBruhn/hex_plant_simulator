@@ -41,8 +41,8 @@ fn main() {
         empty: constants::COLOR_MAP_SUN_EMPTY,
     };
     let color_maps_background = map::DataModeBackground::new_color_map_collection(
-        color_map_background_transparency,
         color_map_background_light,
+        color_map_background_transparency,
     );
 
     // Set window settings
@@ -74,7 +74,7 @@ fn main() {
     };
 
     // Construct the map
-    let map_settings = map::MapSettings::new()
+    let map_settings = map::Settings::new()
         .with_transparency(constants::MAP_TRANSPARENCY)
         .with_sun_speed(constants::MAP_SUN_SPEED);
     let map_data = map::Map::new(constants::MAP_SIZE, map_settings);
