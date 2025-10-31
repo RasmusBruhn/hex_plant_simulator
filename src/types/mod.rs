@@ -20,4 +20,4 @@ mod transform2d;
 pub use transform2d::{Transform2D, UniformTransform2D};
 
 mod color;
-pub use color::{Color, ColorMap, UniformColorMap, ColorMapLinearRGBA};
+pub use color::{Color, ColorMap, ColorMapDiscrete, ColorMapLinearRGBA, UniformColorMap};

@@ -34,7 +34,7 @@ struct ColorMap {
     // All flags for the uniform, must be this big due to sizing in wgsl
     //
     // 0: If set then it is continuous
-    //flags: vec4<u32>,
+    flags: vec4<u32>,
 }
 
 // All information on the layout of the grid
@@ -85,19 +85,19 @@ fn fs_main(
     in: VertexOutput
 ) -> @location(0) vec4<f32> {
     // Check if the color map is continuous
-    let continuous = true;//(color_map.flags.x & 1u) != 0u;
+    let continuous = (color_map.flags.x & 1u) != 0u;
 
     // Clamp the color value to avoid overflow
-    let color_value = clamp(in.color_value, 0.0, 1.0);
+    let color_value = clamp(in.color_value, 0.0, 1.0) * 255.0;
 
     // Handle non-continuous color maps by snapping
     if (!continuous) {
-        let color_index = u32(color_value * 255.0 + 0.5);
+        let color_index = u32(color_value + 0.5);
         return color_map.colors[color_index];
     }
 
     // Handle continuous color maps
-    let color_index = u32(color_value * 255.0);
+    let color_index = u32(color_value);
     let color_ratio = color_value - f32(color_index);
 
     // Handle the max value differently

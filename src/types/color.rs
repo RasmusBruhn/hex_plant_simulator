@@ -88,7 +88,7 @@ pub trait ColorMap: DynClone + Debug {
             .unwrap();
         let flags = [(self.get_continuous() as u32) & 1, 0, 0, 0];
 
-        return UniformColorMap { colors };
+        return UniformColorMap { colors, flags };
     }
 }
 
@@ -100,10 +100,10 @@ dyn_clone::clone_trait_object!(ColorMap);
 pub struct UniformColorMap {
     /// The full spectrum of colors
     pub colors: [[f32; 4]; 256],
-    // All flags for the uniform, must be this big due to sizing in wgsl
-    //
-    // 0: If set then it is continuous
-    //pub flags: [u32; 4],
+    /// All flags for the uniform, must be this big due to sizing in wgsl
+    ///
+    /// 0: If set then it is continuous
+    pub flags: [u32; 4],
 }
 
 /// A color map with linear spacing in RGBA space between two colors
@@ -113,6 +113,19 @@ pub struct ColorMapLinearRGBA {
     pub empty: Color,
     /// The fully saturated color
     pub saturated: Color,
+}
+
+impl ColorMapLinearRGBA {
+    /// Constructs a new linear RGBA color map
+    ///
+    /// # Parameters
+    ///
+    /// empty: The color when it is the least saturated
+    ///
+    /// saturated: The color when it is the most saturated
+    pub const fn new(empty: Color, saturated: Color) -> Self {
+        return Self { empty, saturated };
+    }
 }
 
 impl ColorMap for ColorMapLinearRGBA {
@@ -125,6 +138,46 @@ impl ColorMap for ColorMapLinearRGBA {
                 b: saturation * self.saturated.b + (1.0 - saturation) * self.empty.b,
                 a: saturation * self.saturated.a + (1.0 - saturation) * self.empty.a,
             })
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+    }
+}
+
+/// A color map with discrete values, it is not continuous
+#[derive(Clone, Debug, PartialEq)]
+pub struct ColorMapDiscrete {
+    /// All the different color map values
+    pub colors: Vec<Color>,
+    /// The padding color if the number of colors is less than 256
+    pub unused: Color,
+}
+
+impl ColorMapDiscrete {
+    /// Constructs a new discrete color map
+    ///
+    /// # Parameters
+    ///
+    /// colors: The colors of the color map, if the length is larger than 256
+    /// then it is truncated and if it is shorter then it is padded
+    ///
+    /// unused: The color to use for padding
+    pub const fn new(colors: Vec<Color>, unused: Color) -> Self {
+        return Self { colors, unused };
+    }
+}
+
+impl ColorMap for ColorMapDiscrete {
+    fn get_continuous(&self) -> bool {
+        return false;
+    }
+
+    fn get_colors(&self) -> [Color; 256] {
+        let trunc_length = self.colors.len().min(256);
+        return self.colors[0..trunc_length]
+            .iter()
+            .cloned()
+            .chain((0..(256 - trunc_length)).map(|_| self.unused))
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
