@@ -4,7 +4,7 @@ use super::InstanceTile;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Tile {
     /// The intensity of the sun
-    intensity: f64,
+    pub intensity: f64,
 }
 
 impl Tile {

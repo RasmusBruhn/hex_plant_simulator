@@ -10,11 +10,12 @@
 use super::InstanceTile;
 
 mod state;
-pub use state::State;
+pub(super) use state::State;
 
 mod tile;
-pub use tile::Tile;
+pub(super) use tile::Tile;
 
 mod intensity;
+pub use intensity::{Intensity, IntensityPlanet};
 
 mod position;
