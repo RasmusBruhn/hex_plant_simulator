@@ -1,6 +1,6 @@
 use crate::types;
 
-use super::{SunTile, Tile};
+use super::{Tile, sun};
 
 /// References for all the neighbors of a single tile
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -29,7 +29,12 @@ impl<'a> TileNeighbors<'a> {
     /// size: The size of the grid
     ///
     /// pos: The position of the tile to get neighbors for
-    pub fn new(tiles: &'a [Tile], sun: &'a [SunTile], size: &types::ISize, pos: &TilePos) -> Self {
+    pub fn new(
+        tiles: &'a [Tile],
+        sun: &'a [sun::Tile],
+        size: &types::ISize,
+        pos: &TilePos,
+    ) -> Self {
         let right = match pos.right(size) {
             TilePosNeighbor::Valid(pos) => Neighbor::Tile(&tiles[pos.to_index(size)]),
             TilePosNeighbor::Invalid(_) => Neighbor::Empty,
@@ -74,7 +79,7 @@ pub enum Neighbor<'a> {
     /// This neighbor is a normal tile
     Tile(&'a Tile),
     /// This neighbor is a sun tile
-    SunTile(&'a SunTile),
+    SunTile(&'a sun::Tile),
 }
 
 /// A tile index position in the grid

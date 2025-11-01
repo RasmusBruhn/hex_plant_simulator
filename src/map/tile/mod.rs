@@ -1,36 +1,11 @@
 use std::mem;
 
-use super::{DataModeBackground, Settings};
+use super::{DataModeBackground, Settings, sun};
 
 mod neighbor;
 pub(super) use neighbor::{Neighbor, TileNeighbors, TilePos};
 
 mod simulation;
-
-/// All data for a single sun ray
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct SunTile {
-    /// The intensity of the sun
-    intensity: f64,
-}
-
-impl SunTile {
-    /// Constructs a new sun tile
-    ///
-    /// # Parameters
-    ///
-    /// intensity: The intensity of the tile
-    pub fn new(intensity: f64) -> Self {
-        return Self { intensity };
-    }
-
-    /// Converts the sun tile to shader compatible data
-    pub fn get_data(&self) -> InstanceTile {
-        return InstanceTile {
-            color_value: self.intensity as f32,
-        };
-    }
-}
 
 /// A single tile for the map
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -1,14 +1,13 @@
 use crate::{constants, types};
 
+pub mod sun;
+
 mod data_mode;
 pub use data_mode::DataModeBackground;
 
 mod tile;
 pub use tile::InstanceTile;
-use tile::{SunTile, Tile, TileNeighbors, TilePos};
-
-mod sun_state;
-pub use sun_state::SunState;
+use tile::{Tile, TileNeighbors, TilePos};
 
 mod settings;
 pub use settings::Settings;
@@ -22,9 +21,9 @@ pub struct Map {
     /// All the tiles in a row first, left to right, bottom to top order
     tiles: Vec<Tile>,
     /// The intensity of the sun at each column in the range 0 to 1
-    sun_tiles: Vec<SunTile>,
+    sun_tiles: Vec<sun::Tile>,
     /// The state of the sun
-    sun: SunState,
+    sun: sun::State,
     /// The size of the grid
     size: types::ISize,
     /// The simulation settings of the map
@@ -41,8 +40,8 @@ impl Map {
     /// settings: The simulation settings for the map
     pub fn new(size: types::ISize, settings: Settings) -> Self {
         let tiles = (0..size.w * size.h).map(|_| Tile::new()).collect();
-        let sun_tiles = (0..size.w).map(|_| SunTile::new(0.0)).collect();
-        let sun = SunState::new();
+        let sun_tiles = (0..size.w).map(|_| sun::Tile::new(0.0)).collect();
+        let sun = sun::State::new();
 
         return Self {
             tiles,
@@ -85,7 +84,7 @@ impl Map {
 
                 let intensity = self.sun.intensity * (dist * constants::MATH_PI).cos();
 
-                return SunTile::new(intensity);
+                return sun::Tile::new(intensity);
             })
             .collect();
     }
