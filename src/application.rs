@@ -13,7 +13,7 @@ use winit::{
 };
 
 /// Runs the application
-pub fn run(main_loop: &mut MainLoop) {
+pub fn run<S: map::sun::Intensity>(main_loop: &mut MainLoop<S>) {
     // Setup logging
     env_logger::init();
 
@@ -33,11 +33,11 @@ pub fn run(main_loop: &mut MainLoop) {
 }
 
 /// Controls the main game loop of the application
-pub struct MainLoop {
+pub struct MainLoop<S: map::sun::Intensity> {
     /// The currently opened window of the application
     window: Option<RenderedWindow>,
     /// The map of tiles
-    map: map::Map,
+    map: map::Map<S>,
     /// The camera for controlling what is displayed
     camera: camera::Camera,
     /// All the settings for creating and displaying a window
@@ -62,7 +62,7 @@ pub struct MainLoop {
     left_shift_active: bool,
 }
 
-impl MainLoop {
+impl<S: map::sun::Intensity> MainLoop<S> {
     /// Creates a new main loop with the supplied settings
     ///
     /// # Parameters
@@ -77,7 +77,7 @@ impl MainLoop {
     ///
     /// settings_viewer: All settings for viewing the application
     pub fn new(
-        map: map::Map,
+        map: map::Map<S>,
         mut camera: camera::Camera,
         settings_window: WindowSettingsInput,
         settings_viewer: ViewerSettingsInput,
@@ -640,7 +640,7 @@ impl MainLoop {
     }
 }
 
-impl ApplicationHandler for MainLoop {
+impl<S: map::sun::Intensity> ApplicationHandler for MainLoop<S> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         // Open a new window
         let window_attributes = Window::default_attributes()
@@ -810,10 +810,10 @@ impl RenderedWindow {
     /// graphics_settings: The settings for the graphics
     ///
     /// map: The map to render
-    pub async fn new(
+    pub async fn new<S: map::sun::Intensity>(
         window: Window,
         graphics_settings: graphics::Settings,
-        map: &map::Map,
+        map: &map::Map<S>,
     ) -> Result<Self, render::NewRenderStateError> {
         let window = Arc::new(window);
         let render_state = render::RenderState::new(&window).await?;

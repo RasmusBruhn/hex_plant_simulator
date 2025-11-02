@@ -27,7 +27,7 @@ impl<S: Intensity> State<S> {
             .intensity
             .iter(t)
             .map(|intensity| {
-                return Tile::new(intensity.0 * intensity.1);
+                return Tile::new(intensity.0 + intensity.1);
             })
             .collect();
     }

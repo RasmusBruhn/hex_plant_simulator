@@ -66,14 +66,19 @@ fn main() {
     };
 
     // Construct the map
-    let map_settings = map::Settings::new()
-        .with_transparency(constants::MAP_TRANSPARENCY)
-        .with_sun_speed(constants::MAP_SUN_SPEED);
-    let map_data = map::Map::new(constants::MAP_SIZE, map_settings);
+    let map_settings = map::Settings::new().with_transparency(constants::MAP_TRANSPARENCY);
+    let sun_year = map::sun::IntensityYearPlanet::new(
+        constants::MAP_SUN_TILT,
+        constants::MAP_SUN_LATITUDE,
+        constants::MAP_SUN_YEAR,
+        constants::MAP_SUN_INTENSITY,
+    );
+    let sun_day = map::sun::IntensityDayPlanet::new(constants::MAP_SUN_DAY);
+    let sun = map::sun::IntensityYearDay::new(sun_year, sun_day);
+    let map = map::Map::new(constants::MAP_SIZE, map_settings, sun);
 
     // Setup the main loop
-    let mut main_loop =
-        application::MainLoop::new(map_data, camera, settings_window, settings_viewer);
+    let mut main_loop = application::MainLoop::new(map, camera, settings_window, settings_viewer);
 
     // Run the application
     application::run(&mut main_loop);

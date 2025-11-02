@@ -59,7 +59,7 @@ impl InstanceMode {
     /// # Parameters
     ///
     /// map: The map used to get data from
-    pub(super) fn data(&self, map: &map::Map) -> Vec<map::InstanceTile> {
+    pub(super) fn data<S: map::sun::Intensity>(&self, map: &map::Map<S>) -> Vec<map::InstanceTile> {
         return match self {
             Self::GridBackground(mode) => map.get_tile_data_background(&mode),
             Self::Sun => map.get_sun_data(),
@@ -73,10 +73,10 @@ impl InstanceMode {
     /// render_state: The render state to use for rendering
     ///
     /// map: The map to use for initialization of the data
-    pub(super) fn new(
+    pub(super) fn new<S: map::sun::Intensity>(
         &self,
         render_state: &render::RenderState,
-        map: &map::Map,
+        map: &map::Map<S>,
     ) -> (BufferInstance, UniformsInstance) {
         return (
             BufferInstance::new(render_state, &self.data(map)),
@@ -93,9 +93,9 @@ impl InstanceMode {
     /// map: The map to use for initialization of the data
     ///
     /// mode_background: The display mode for the background of the tiles
-    pub(super) fn new_collection(
+    pub(super) fn new_collection<S: map::sun::Intensity>(
         render_state: &render::RenderState,
-        map: &map::Map,
+        map: &map::Map<S>,
         mode_background: map::DataModeBackground,
     ) -> [(BufferInstance, UniformsInstance); Self::COUNT] {
         return Self::all_instances(mode_background)
@@ -117,11 +117,11 @@ impl InstanceMode {
     /// render_state: The render state to use for rendering
     ///
     /// map: The map to use for data
-    pub(super) fn update(
+    pub(super) fn update<S: map::sun::Intensity>(
         &self,
         collection: &[(BufferInstance, UniformsInstance); Self::COUNT],
         render_state: &render::RenderState,
-        map: &map::Map,
+        map: &map::Map<S>,
     ) {
         collection[self.id()]
             .0
@@ -139,10 +139,10 @@ impl InstanceMode {
     /// map: The map to use for data
     ///
     /// mode_background: The display mode for the background of the tiles
-    pub(super) fn update_collection(
+    pub(super) fn update_collection<S: map::sun::Intensity>(
         collection: &[(BufferInstance, UniformsInstance); Self::COUNT],
         render_state: &render::RenderState,
-        map: &map::Map,
+        map: &map::Map<S>,
         mode_background: map::DataModeBackground,
     ) {
         for instance in Self::all_instances(mode_background).iter() {

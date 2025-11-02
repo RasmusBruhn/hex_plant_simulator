@@ -10,6 +10,19 @@ pub struct IntensityYearDay<Y: Intensity, D: Intensity> {
     day: D,
 }
 
+impl<Y: Intensity, D: Intensity> IntensityYearDay<Y, D> {
+    /// Constructs a new year-day cycle intensity
+    ///
+    /// # Parameters
+    ///
+    /// year: The yearly intensity variations
+    ///
+    /// day: The daily intensity variations
+    pub fn new(year: Y, day: D) -> Self {
+        return Self { year, day };
+    }
+}
+
 impl<Y: Intensity, D: Intensity> Intensity for IntensityYearDay<Y, D> {
     fn get_intensity(&self, tile: usize, t: usize) -> (f64, f64) {
         let year = self.year.get_intensity(tile, t);

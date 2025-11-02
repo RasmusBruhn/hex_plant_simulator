@@ -28,7 +28,11 @@ impl State {
     /// settings: The settings for this state
     ///
     /// map: The map to render
-    pub fn new(render_state: &render::RenderState, settings: Settings, map: &map::Map) -> Self {
+    pub fn new<S: map::sun::Intensity>(
+        render_state: &render::RenderState,
+        settings: Settings,
+        map: &map::Map<S>,
+    ) -> Self {
         // Create pipelines
         let pipelines = PipelineType::new_collection(render_state);
 
@@ -102,7 +106,11 @@ impl State {
     /// render_state: The render state to use for rendering
     ///
     /// map: The map to use for the update
-    pub fn update_map(&self, render_state: &render::RenderState, map: &map::Map) {
+    pub fn update_map<S: map::sun::Intensity>(
+        &self,
+        render_state: &render::RenderState,
+        map: &map::Map<S>,
+    ) {
         InstanceMode::update_collection(
             &self.instances,
             render_state,

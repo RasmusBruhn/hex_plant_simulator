@@ -37,6 +37,7 @@ impl RenderState {
             backends: wgpu::Backends::all(),
             flags: wgpu::InstanceFlags::VALIDATION,
             backend_options: BackendOptions::from_env_or_default(),
+            memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
         });
 
         // Get a surface for the window
@@ -59,6 +60,7 @@ impl RenderState {
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::Performance,
                 trace: wgpu::Trace::Off,
+                experimental_features: wgpu::ExperimentalFeatures::default(),
             })
             .await?;
 

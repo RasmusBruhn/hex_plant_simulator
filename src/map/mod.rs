@@ -1,4 +1,4 @@
-use crate::{constants, types};
+use crate::types;
 
 pub mod sun;
 
@@ -28,6 +28,8 @@ pub struct Map<S: sun::Intensity> {
     size: types::ISize,
     /// The simulation settings of the map
     settings: Settings,
+    /// The current iteration time step
+    time: usize,
 }
 
 impl<S: sun::Intensity> Map<S> {
@@ -38,7 +40,7 @@ impl<S: sun::Intensity> Map<S> {
     /// size: The size of the map
     ///
     /// settings: The simulation settings for the map
-    /// 
+    ///
     /// sun_intensity: The sun intensity variation
     pub fn new(size: types::ISize, settings: Settings, mut sun_intensity: S) -> Self {
         // Set the map size for the sun intensities
@@ -54,11 +56,15 @@ impl<S: sun::Intensity> Map<S> {
             sun,
             size,
             settings,
+            time: 0,
         };
     }
 
     /// Steps the simulation once
     pub fn step(&mut self) {
+        // Set the new sun tile values
+        self.sun_tiles = self.sun.get_tiles(self.time);
+
         // Update the grid
         self.tiles = self
             .tiles
@@ -77,21 +83,8 @@ impl<S: sun::Intensity> Map<S> {
             })
             .collect();
 
-        // Update the sun state
-        self.sun.position = (self.sun.position + self.settings.sun_speed) % 1.0;
-
-        // Set the new sun tile values
-        self.sun_tiles = (0..self.size.w)
-            .map(|index| {
-                let pos = index as f64 / self.size.w as f64;
-                let dist = (pos - self.sun.position).abs();
-                let dist = if dist > 0.5 { 1.0 - dist } else { dist };
-
-                let intensity = self.sun.intensity * (dist * constants::MATH_PI).cos();
-
-                return sun::Tile::new(intensity);
-            })
-            .collect();
+        // Update the time
+        self.time += 1;
     }
 
     /// Retrieves the grid layout of the map
