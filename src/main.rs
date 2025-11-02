@@ -55,6 +55,9 @@ fn main() {
         graphics_settings,
     };
 
+    // Setup shader settings
+    let settings_shader = application::ShaderSettingsInput {};
+
     // Setup the viewer settings
     let framerate = constants::FRAMERATE;
     let sim_rate = constants::SIM_RATE;
@@ -78,7 +81,13 @@ fn main() {
     let map = map::Map::new(constants::MAP_SIZE, map_settings, sun);
 
     // Setup the main loop
-    let mut main_loop = application::MainLoop::new(map, camera, settings_window, settings_viewer);
+    let mut main_loop = application::MainLoop::new(
+        map,
+        camera,
+        settings_window,
+        settings_shader,
+        settings_viewer,
+    );
 
     // Run the application
     application::run(&mut main_loop);
