@@ -17,20 +17,20 @@ pub use grid_layout::{GridLayout, UniformGridLayout};
 
 /// Describes the entire map
 #[derive(Clone, Debug, PartialEq)]
-pub struct Map {
+pub struct Map<S: sun::Intensity> {
     /// All the tiles in a row first, left to right, bottom to top order
     tiles: Vec<Tile>,
     /// The intensity of the sun at each column in the range 0 to 1
     sun_tiles: Vec<sun::Tile>,
     /// The state of the sun
-    sun: sun::State,
+    sun: sun::State<S>,
     /// The size of the grid
     size: types::ISize,
     /// The simulation settings of the map
     settings: Settings,
 }
 
-impl Map {
+impl<S: sun::Intensity> Map<S> {
     /// Constructs a new empty map
     ///
     /// # Parameters
@@ -38,10 +38,15 @@ impl Map {
     /// size: The size of the map
     ///
     /// settings: The simulation settings for the map
-    pub fn new(size: types::ISize, settings: Settings) -> Self {
+    /// 
+    /// sun_intensity: The sun intensity variation
+    pub fn new(size: types::ISize, settings: Settings, mut sun_intensity: S) -> Self {
+        // Set the map size for the sun intensities
+        sun_intensity.set_size(size.w);
+
         let tiles = (0..size.w * size.h).map(|_| Tile::new()).collect();
         let sun_tiles = (0..size.w).map(|_| sun::Tile::new(0.0)).collect();
-        let sun = sun::State::new();
+        let sun = sun::State::new(sun_intensity);
 
         return Self {
             tiles,

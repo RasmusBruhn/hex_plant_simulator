@@ -1,19 +1,34 @@
-/// Describes the current state of the sun, it shines with an intensity
-/// oscillating harmonically as a function of position
+use super::{Intensity, Tile};
+
+/// Describes the current state of the sun
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct State {
-    /// The base intensity of the sun
-    pub intensity: f64,
-    /// The position of the sun on the map in the range [0, 1[
-    pub position: f64,
+pub struct State<S: Intensity> {
+    /// The intensity variation
+    pub intensity: S,
 }
 
-impl State {
+impl<S: Intensity> State<S> {
     /// Constructs a new sun state
-    pub fn new() -> Self {
-        return Self {
-            intensity: 1.0,
-            position: 0.0,
-        };
+    ///
+    /// # Parameters
+    ///
+    /// intensity: The intensity variations
+    pub fn new(intensity: S) -> Self {
+        return Self { intensity };
+    }
+
+    /// Constructs all the sun intensity tiles for the current time of the simulation
+    ///
+    /// # Parameters
+    ///
+    /// t: The simulation step of the tile
+    pub fn get_tiles(&self, t: usize) -> Vec<Tile> {
+        return self
+            .intensity
+            .iter(t)
+            .map(|intensity| {
+                return Tile::new(intensity.0 * intensity.1);
+            })
+            .collect();
     }
 }
