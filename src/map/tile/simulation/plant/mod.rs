@@ -6,10 +6,13 @@
 
 // Log: #52361e
 // Branch: #78583c
-use super::Settings;
+use super::{Settings, TileNeighbors};
 
 mod state;
 pub use state::State;
+
+mod spread;
+use spread::Spread;
 
 mod neighbor;
 use neighbor::NeighborType;
@@ -39,7 +42,7 @@ pub struct Plant {
     energy_reserve: f64,
     /// Set if it attempts to spread to a neighboring tile, the tile it will
     /// spread to and the energy allocated for creating the new plant
-    spread: Option<(NeighborType, f64)>,
+    spread: Spread,
 }
 
 impl Plant {
@@ -53,7 +56,13 @@ impl Plant {
     }
 
     /// Forwards the state of this plant to the next simulation step
-    fn forward(&self, map_settings: &Settings) -> Self {
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The settings for the map
+    ///
+    /// neighbors: References to all the neighbors of this tile
+    fn forward(&self, map_settings: &Settings, neighbors: &TileNeighbors) -> Option<Self> {
         todo!()
     }
 }

@@ -12,7 +12,7 @@ impl Tile {
     /// neighbors: References to all the neighbors of this til
     pub fn forward(&self, map_settings: &Settings, neighbors: &TileNeighbors) -> Self {
         return Self {
-            plant: self.plant.clone(),
+            plant: self.plant.forward(map_settings, neighbors),
             transparency: self.forward_transparency(map_settings, neighbors),
             light: self.forward_light(map_settings, neighbors),
         };
