@@ -1,4 +1,4 @@
-use crate::{camera, graphics, map, render, types};
+use crate::{camera, constants::MATH_SQRT_3, graphics, map, render, types};
 use std::{
     sync::Arc,
     time::{Duration, Instant},
@@ -103,10 +103,10 @@ impl<S: map::sun::Intensity> MainLoop<S> {
         // Create the viewer settings
         let home_view = types::View::new(
             types::Point::new(
-                (map.get_size().w as f64) * 0.5,
-                (map.get_size().h as f64) * 0.5,
+                ((map.get_size().w - 1) as f64) * 0.5,
+                -((map.get_size().h - 1) as f64) / MATH_SQRT_3 * 0.5,
             ),
-            types::Size::new(map.get_size().w as f64, map.get_size().h as f64),
+            types::Size::new(map.get_size().w as f64, map.get_size().h as f64 / MATH_SQRT_3),
         );
         let settings_viewer = ViewerSettings {
             framerate: settings_viewer.framerate,

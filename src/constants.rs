@@ -20,8 +20,8 @@ pub const MAP_SIZE: types::ISize = types::ISize { w: 200, h: 50 };
 pub const MAP_TRANSPARENCY: f64 = 0.999;
 pub const MAP_SUN_YEAR: f64 = 6000.0;
 pub const MAP_SUN_DAY: f64 = 500.0;
-pub const MAP_SUN_TILT: f64 = 0.0;
-pub const MAP_SUN_LATITUDE: f64 = 0.0;
+pub const MAP_SUN_TILT: f64 = MATH_PI * 0.25;
+pub const MAP_SUN_LATITUDE: f64 = MATH_PI * 0.25;
 pub const MAP_SUN_INTENSITY: f64 = 1.0;
 
 pub const SIM_RATE: f64 = 100.0;

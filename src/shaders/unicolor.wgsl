@@ -67,7 +67,7 @@ fn vs_main(
     // Get the position in the grid
     let column = instance.id % grid_layout.n_columns;
     let row = instance.id / grid_layout.n_columns;
-    let grid_pos = vec2<f32>((f32(column) + 0.5 * f32(row % 2u)) * 1.05, -0.5 * sqrt_3 * f32(row));
+    let grid_pos = vec2<f32>(f32(column) + 0.5 * f32(row % 2u), -0.5 * sqrt_3 * f32(row));
 
     // Get the position on the screen
     let screen_pos = transform.transform * vec4<f32>(model.pos + grid_pos, 0.0, 1.0);
