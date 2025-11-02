@@ -3,7 +3,7 @@ use crate::types;
 use super::{Tile, sun};
 
 /// References for all the neighbors of a single tile
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct TileNeighbors<'a> {
     /// The tile to the right
     pub right: Neighbor<'a>,
@@ -72,7 +72,7 @@ impl<'a> TileNeighbors<'a> {
 }
 
 /// The reference to a neighbor tile
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Neighbor<'a> {
     /// There is nothing at this tile
     Empty,

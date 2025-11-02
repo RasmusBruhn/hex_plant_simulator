@@ -6,10 +6,13 @@ mod neighbor;
 pub(super) use neighbor::{Neighbor, TileNeighbors, TilePos};
 
 mod simulation;
+use simulation::plant;
 
 /// A single tile for the map
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Tile {
+    /// The plant at this tile
+    plant: plant::State,
     /// The light transparency of this tile
     transparency: f64,
     /// The light level of this tile
@@ -20,6 +23,7 @@ impl Tile {
     /// Constructs a new empty tile
     pub fn new() -> Self {
         return Self {
+            plant: plant::State::Nothing,
             transparency: 1.0,
             light: 0.0,
         };

@@ -16,7 +16,7 @@ mod grid_layout;
 pub use grid_layout::{GridLayout, UniformGridLayout};
 
 /// Describes the entire map
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Map<S: sun::Intensity> {
     /// All the tiles in a row first, left to right, bottom to top order
     tiles: Vec<Tile>,
