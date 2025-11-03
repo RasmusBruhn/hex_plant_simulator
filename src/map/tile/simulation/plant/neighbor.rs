@@ -1,5 +1,5 @@
 /// Describes the direction of a neighbor
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum NeighborType {
     Right,
     UpRight,
@@ -10,7 +10,7 @@ pub enum NeighborType {
 }
 
 impl NeighborType {
-    /// A unique id for the neighbor direction which serves as a priority for acting on a neighbor
+    /// An unique id for the neighbor direction which serves as a priority for acting on a neighbor
     pub fn id(&self) -> usize {
         return match self {
             Self::Right => 2,
