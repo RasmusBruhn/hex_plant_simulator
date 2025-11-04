@@ -45,4 +45,51 @@ impl Bulk {
             Self::RipeSeed(plant) => plant.get_transparency(map_settings),
         };
     }
+
+    /// Gets the energy cost factor of energy storage for a log
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    ///
+    /// capacity: The storage capacity
+    pub fn get_energy_cost_storage_energy(&self, map_settings: &Settings, capacity: f64) -> f64 {
+        return match self {
+            Self::Log(data) => data.get_energy_cost_storage_energy(map_settings, capacity),
+            Self::SugarBulb(data) => data.get_energy_cost_storage_energy(map_settings, capacity),
+            Self::Leaf(data) => data.get_energy_cost_storage_energy(map_settings, capacity),
+            Self::Seed(data) => data.get_energy_cost_storage_energy(map_settings, capacity),
+            Self::RipeSeed(data) => data.get_energy_cost_storage_energy(map_settings, capacity),
+        };
+    }
+
+    /// Gets the energy cost factor of running a log
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    pub fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
+        return match self {
+            Self::Log(data) => data.get_energy_cost_run(map_settings),
+            Self::SugarBulb(data) => data.get_energy_cost_run(map_settings),
+            Self::Leaf(data) => data.get_energy_cost_run(map_settings),
+            Self::Seed(data) => data.get_energy_cost_run(map_settings),
+            Self::RipeSeed(data) => data.get_energy_cost_run(map_settings),
+        };
+    }
+
+    /// Gets the energy cost of building a new log
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    pub fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
+        return match self {
+            Self::Log(data) => data.get_energy_cost_build(map_settings),
+            Self::SugarBulb(data) => data.get_energy_cost_build(map_settings),
+            Self::Leaf(data) => data.get_energy_cost_build(map_settings),
+            Self::Seed(data) => data.get_energy_cost_build(map_settings),
+            Self::RipeSeed(data) => data.get_energy_cost_build(map_settings),
+        };
+    }
 }

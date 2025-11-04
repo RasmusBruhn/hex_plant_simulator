@@ -10,8 +10,10 @@ impl Log {
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    pub fn get_energy_cost_transfer_energy(&self, map_settings: &Settings) -> f64 {
-        return map_settings.energy.transfer.energy.log;
+    /// 
+    /// capacity: The transfer capacity
+    pub fn get_energy_cost_transfer_energy(&self, map_settings: &Settings, capacity: f64) -> f64 {
+        return map_settings.energy.transfer.energy.log * capacity;
     }
 
     /// Gets the energy cost factor of running a log bridge

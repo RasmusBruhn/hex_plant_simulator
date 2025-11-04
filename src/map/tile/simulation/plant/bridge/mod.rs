@@ -1,3 +1,5 @@
+use std::iter::once;
+
 use super::Settings;
 
 mod log;
@@ -24,14 +26,20 @@ pub struct BridgeSet {
 }
 
 impl BridgeSet {
+    /// Iterates through all the bridges
+    pub fn iter(&self) -> impl Iterator<Item = &Bridge> {
+        return once(&self.right)
+            .chain(once(&self.up_right))
+            .chain(once(&self.up_left))
+            .chain(once(&self.left))
+            .chain(once(&self.down_left))
+            .chain(once(&self.down_right))
+            .filter_map(|bridge| bridge.as_ref());
+    }
+
     /// Returns the number of connected bridges
     pub fn count(&self) -> usize {
-        return self.right.is_some() as usize
-            + self.up_right.is_some() as usize
-            + self.up_left.is_some() as usize
-            + self.left.is_some() as usize
-            + self.down_left.is_some() as usize
-            + self.down_right.is_some() as usize;
+        return self.iter().count();
     }
 }
 
@@ -65,18 +73,10 @@ impl Bridge {
     ///
     /// map_settings: The general map settings
     pub fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
-        let (base, transfer_energy) = match &self.bridge {
-            BridgeType::Log(data) => (
-                data.get_energy_cost_build(map_settings),
-                data.get_energy_cost_transfer_energy(map_settings),
-            ),
-            BridgeType::Branch(data) => (
-                data.get_energy_cost_build(map_settings),
-                data.get_energy_cost_transfer_energy(map_settings),
-            ),
-        };
-
-        return base + transfer_energy * self.energy_capacity;
+        return self.bridge.get_energy_cost_build(map_settings)
+            + self
+                .bridge
+                .get_energy_cost_transfer_energy(map_settings, self.energy_capacity);
     }
 
     /// Gets the energy cost of running a bridge
@@ -85,12 +85,8 @@ impl Bridge {
     ///
     /// map_settings: The general map settings
     pub fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
-        let factor = match &self.bridge {
-            BridgeType::Log(data) => data.get_energy_cost_run(map_settings),
-            BridgeType::Branch(data) => data.get_energy_cost_run(map_settings),
-        };
-
-        return factor * self.get_energy_cost_build(map_settings);
+        return self.bridge.get_energy_cost_run(map_settings)
+            * self.get_energy_cost_build(map_settings);
     }
 }
 
@@ -142,4 +138,44 @@ pub enum BridgeType {
     Log(Log),
     /// Able to only transfer small amounts of energy but cheap
     Branch(Branch),
+}
+
+impl BridgeType {
+    /// Gets the energy cost factor of energy transfer for a bridge
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    ///
+    /// capacity: The transfer capacity
+    pub fn get_energy_cost_transfer_energy(&self, map_settings: &Settings, capacity: f64) -> f64 {
+        return match self {
+            Self::Log(data) => data.get_energy_cost_transfer_energy(map_settings, capacity),
+            Self::Branch(data) => data.get_energy_cost_transfer_energy(map_settings, capacity),
+        };
+    }
+
+    /// Gets the energy cost factor of running a bridge
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    pub fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
+        return match self {
+            Self::Log(data) => data.get_energy_cost_run(map_settings),
+            Self::Branch(data) => data.get_energy_cost_run(map_settings),
+        };
+    }
+
+    /// Gets the energy cost of building a new bridge
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    pub fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
+        return match self {
+            Self::Log(data) => data.get_energy_cost_build(map_settings),
+            Self::Branch(data) => data.get_energy_cost_build(map_settings),
+        };
+    }
 }

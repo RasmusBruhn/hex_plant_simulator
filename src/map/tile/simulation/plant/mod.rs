@@ -55,6 +55,47 @@ impl Plant {
         return self.bulk.get_transparency(map_settings);
     }
 
+    /// Gets the energy cost of building the bulk of this plant
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    fn get_energy_cost_build_bulk(&self, map_settings: &Settings) -> f64 {
+        return self.bulk.get_energy_cost_build(map_settings)
+            + self
+                .bulk
+                .get_energy_cost_storage_energy(map_settings, self.energy_capacity);
+    }
+
+    /// Gets the energy cost of building this plant
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
+        return self.get_energy_cost_build_bulk(map_settings)
+            + self
+                .bridges
+                .iter()
+                .map(|bridge| 0.5 * bridge.get_energy_cost_build(map_settings))
+                .sum::<f64>();
+    }
+
+    /// Gets the energy cost of running this plant
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
+        return self.get_energy_cost_build_bulk(map_settings)
+            * self.bulk.get_energy_cost_run(map_settings)
+            + self
+                .bridges
+                .iter()
+                .map(|bridge| 0.5 * bridge.get_energy_cost_run(map_settings))
+                .sum::<f64>();
+    }
+
     /// Forwards the state of this plant to the next simulation step
     ///
     /// # Parameters
@@ -117,7 +158,9 @@ impl Plant {
             if let State::Building((plant, direction)) = &tile.plant {
                 if direction == spread_direction {
                     match &spread_direction {
-                        NeighborType::Right => bridges.right = plant.bridges.left.map(|bridge| bridge.get_opposite()),
+                        NeighborType::Right => {
+                            bridges.right = plant.bridges.left.map(|bridge| bridge.get_opposite())
+                        }
                         NeighborType::UpRight => bridges.le,
                         NeighborType::UpLeft => &neighbors.up_left,
                         NeighborType::Left => &neighbors.left,
