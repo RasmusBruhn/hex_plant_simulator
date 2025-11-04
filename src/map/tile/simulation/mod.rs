@@ -26,7 +26,7 @@ impl Tile {
     ///
     /// neighbors: References to all the neighbors of this til
     fn forward_transparency(&self, map_settings: &Settings, _neighbors: &TileNeighbors) -> f64 {
-        return map_settings.transparency * self.plant.get_transparency(map_settings);
+        return map_settings.transparency.base * self.plant.get_transparency(map_settings);
     }
 
     /// Calculates the next light level of the tile

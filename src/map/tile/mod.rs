@@ -1,6 +1,6 @@
 use std::mem;
 
-use super::{DataModeBackground, Settings, sun};
+use super::{DataModeBackground, settings::Settings, sun};
 
 mod neighbor;
 pub(super) use neighbor::{Neighbor, TileNeighbors, TilePos};

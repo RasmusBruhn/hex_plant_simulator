@@ -9,8 +9,7 @@ mod tile;
 pub use tile::InstanceTile;
 use tile::{Tile, TileNeighbors, TilePos};
 
-mod settings;
-pub use settings::Settings;
+pub mod settings;
 
 mod grid_layout;
 pub use grid_layout::{GridLayout, UniformGridLayout};
@@ -27,7 +26,7 @@ pub struct Map<S: sun::Intensity> {
     /// The size of the grid
     size: types::ISize,
     /// The simulation settings of the map
-    settings: Settings,
+    settings: settings::Settings,
     /// The current iteration time step
     time: usize,
 }
@@ -42,7 +41,7 @@ impl<S: sun::Intensity> Map<S> {
     /// settings: The simulation settings for the map
     ///
     /// sun_intensity: The sun intensity variation
-    pub fn new(size: types::ISize, settings: Settings, mut sun_intensity: S) -> Self {
+    pub fn new(size: types::ISize, settings: settings::Settings, mut sun_intensity: S) -> Self {
         // Set the map size for the sun intensities
         sun_intensity.set_size(size.w);
 
@@ -100,7 +99,7 @@ impl<S: sun::Intensity> Map<S> {
     }
 
     /// Retrieves the simulation settings for the map
-    pub fn get_settings(&self) -> &Settings {
+    pub fn get_settings(&self) -> &settings::Settings {
         return &self.settings;
     }
 

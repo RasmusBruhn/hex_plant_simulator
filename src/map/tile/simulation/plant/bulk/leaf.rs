@@ -14,6 +14,6 @@ impl Leaf {
     /// 
     /// map_settings: The settings for this map
     pub fn get_transparency(&self, map_settings: &Settings) -> f64 {
-        return map_settings.transparency_leaf * (1.0 - self.absorption);
+        return map_settings.transparency.leaf / (1.0 - self.absorption);
     }
 }

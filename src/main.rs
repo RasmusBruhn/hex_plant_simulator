@@ -69,7 +69,9 @@ fn main() {
     };
 
     // Construct the map
-    let map_settings = map::Settings::new().with_transparency(constants::MAP_TRANSPARENCY);
+    let map_transparency_settings =
+        map::settings::transparency::Settings::new().with_base(constants::MAP_TRANSPARENCY);
+    let map_settings = map::settings::Settings::new().with_transparency(map_transparency_settings);
     let sun_year = map::sun::IntensityYearPlanet::new(
         constants::MAP_SUN_TILT,
         constants::MAP_SUN_LATITUDE,
