@@ -110,6 +110,7 @@ impl Plant {
         }
 
         // Remove unused bridges
+        
 
         // Handle ongoing spreading
         let (spread, energy) = match self.spread {
@@ -124,6 +125,22 @@ impl Plant {
         // Gain and spend energy
 
         todo!()
+    }
+
+    fn remove_bridges(mut bridges: BridgeSet, neighbors: &TileNeighbors) -> BridgeSet {
+        if let Some(bridge) = &bridges.right {
+            match &neighbors.right {
+                Neighbor::Tile(tile) => match &tile.plant {
+                    State::Occupied(plant) => if !plant.alive {
+                        bridges.right = None;
+                    }
+                    _ => {
+                        bridges.right = None;
+                    }
+                }
+                _ => bridges.right = None,
+            }
+        }
     }
 
     /// Resolves a spread action after waiting, returning the new bridges and

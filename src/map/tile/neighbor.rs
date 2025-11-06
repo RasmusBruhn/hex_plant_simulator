@@ -69,6 +69,38 @@ impl<'a> TileNeighbors<'a> {
             down_right,
         };
     }
+
+    /// Gets a reference to the neighbor in the given direction
+    ///
+    /// # Parameters
+    ///
+    /// direction: The direction of the neighbor
+    pub fn get(&self, direction: &NeighborDirection) -> &Neighbor<'a> {
+        return match direction {
+            NeighborDirection::Right => &self.right,
+            NeighborDirection::UpRight => &self.up_right,
+            NeighborDirection::UpLeft => &self.up_left,
+            NeighborDirection::Left => &self.left,
+            NeighborDirection::DownLeft => &self.down_left,
+            NeighborDirection::DownRight => &self.down_right,
+        };
+    }
+
+    /// Gets a mutable reference to the neighbor in the given direction
+    ///
+    /// # Parameters
+    ///
+    /// direction: The direction of the neighbor
+    pub fn get_mut(&mut self, direction: &NeighborDirection) -> &mut Neighbor<'a> {
+        return match direction {
+            NeighborDirection::Right => &mut self.right,
+            NeighborDirection::UpRight => &mut self.up_right,
+            NeighborDirection::UpLeft => &mut self.up_left,
+            NeighborDirection::Left => &mut self.left,
+            NeighborDirection::DownLeft => &mut self.down_left,
+            NeighborDirection::DownRight => &mut self.down_right,
+        };
+    }
 }
 
 /// The reference to a neighbor tile
@@ -112,6 +144,25 @@ impl TilePos {
 
         return Self {
             pos: types::Index { x, y },
+        };
+    }
+
+    /// Gets the tile position in the specified direction of this tile, None if
+    /// it is outside the grid
+    ///
+    /// # Parameters
+    ///
+    /// size: The size of the tile grid
+    ///
+    /// direction: The direction of the tile
+    pub fn direction(&self, size: &types::ISize, direction: &NeighborDirection) -> TilePosNeighbor {
+        return match direction {
+            NeighborDirection::Right => self.right(size),
+            NeighborDirection::UpRight => self.up_right(size),
+            NeighborDirection::UpLeft => self.up_left(size),
+            NeighborDirection::Left => self.left(size),
+            NeighborDirection::DownLeft => self.down_left(size),
+            NeighborDirection::DownRight => self.down_right(size),
         };
     }
 
@@ -287,4 +338,41 @@ pub enum TilePosNeighbor {
     Valid(TilePos),
     /// The position is outside the grid
     Invalid(TilePos),
+}
+
+/// Describes the direction of a neighbor
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum NeighborDirection {
+    Right,
+    UpRight,
+    UpLeft,
+    Left,
+    DownLeft,
+    DownRight,
+}
+
+impl NeighborDirection {
+    /// A unique id for the neighbor direction which serves as a priority for acting on a neighbor
+    pub fn id(&self) -> usize {
+        return match self {
+            Self::Right => 2,
+            Self::UpRight => 4,
+            Self::UpLeft => 5,
+            Self::Left => 3,
+            Self::DownLeft => 1,
+            Self::DownRight => 0,
+        };
+    }
+
+    /// A collection of all the different directions
+    pub fn collection() -> &'static [Self; 6] {
+        return &[
+            Self::Right,
+            Self::UpRight,
+            Self::UpLeft,
+            Self::Left,
+            Self::DownLeft,
+            Self::DownRight,
+        ];
+    }
 }
