@@ -1,4 +1,4 @@
-use super::{Neighbor, Settings, Tile, TileNeighbors};
+use super::{Neighbor, Settings, Tile, TileNeighbors, NeighborDirection};
 
 pub mod plant;
 

@@ -1,6 +1,6 @@
 use std::iter::once;
 
-use super::Settings;
+use super::{Settings, NeighborDirection};
 
 mod log;
 pub use log::Log;
@@ -40,6 +40,38 @@ impl BridgeSet {
     /// Returns the number of connected bridges
     pub fn count(&self) -> usize {
         return self.iter().count();
+    }
+
+    /// Gets a reference to the bridge in the given direction
+    ///
+    /// # Parameters
+    ///
+    /// direction: The direction of the bridge
+    pub fn get(&self, direction: &NeighborDirection) -> &Option<Bridge> {
+        return match direction {
+            NeighborDirection::Right => &self.right,
+            NeighborDirection::UpRight => &self.up_right,
+            NeighborDirection::UpLeft => &self.up_left,
+            NeighborDirection::Left => &self.left,
+            NeighborDirection::DownLeft => &self.down_left,
+            NeighborDirection::DownRight => &self.down_right,
+        };
+    }
+
+    /// Gets a mutable reference to the bridge in the given direction
+    ///
+    /// # Parameters
+    ///
+    /// direction: The direction of the bridge
+    pub fn get_mut(&mut self, direction: &NeighborDirection) -> &mut Option<Bridge> {
+        return match direction {
+            NeighborDirection::Right => &mut self.right,
+            NeighborDirection::UpRight => &mut self.up_right,
+            NeighborDirection::UpLeft => &mut self.up_left,
+            NeighborDirection::Left => &mut self.left,
+            NeighborDirection::DownLeft => &mut self.down_left,
+            NeighborDirection::DownRight => &mut self.down_right,
+        };
     }
 }
 

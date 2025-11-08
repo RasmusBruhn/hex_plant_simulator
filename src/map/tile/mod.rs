@@ -3,7 +3,7 @@ use std::mem;
 use super::{DataModeBackground, settings::Settings, sun};
 
 mod neighbor;
-pub(super) use neighbor::{Neighbor, TileNeighbors, TilePos};
+pub(super) use neighbor::{Neighbor, TileNeighbors, TilePos, NeighborDirection};
 
 mod simulation;
 use simulation::plant;

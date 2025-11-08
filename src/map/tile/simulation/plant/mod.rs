@@ -6,16 +6,13 @@
 
 // Log: #52361e
 // Branch: #78583c
-use super::{Neighbor, Settings, Tile, TileNeighbors};
+use super::{Neighbor, NeighborDirection, Settings, Tile, TileNeighbors};
 
 mod state;
 pub use state::State;
 
 mod spread;
 use spread::Spread;
-
-mod neighbor;
-use neighbor::NeighborType;
 
 mod bridge;
 use bridge::BridgeSet;
@@ -109,85 +106,82 @@ impl Plant {
             return None;
         }
 
+        // Setup initial values
+        let mut bridges = self.bridges.clone();
+
         // Remove unused bridges
-        
+        Self::remove_bridges(&mut bridges, neighbors);
 
         // Handle ongoing spreading
-        let (spread, energy) = match self.spread {
-            Spread::Nothing => (Spread::Nothing, 0.0),
-            Spread::Trying(value) => (Spread::Waiting(value.clone()), 0.0),
+        let (spread, energy) = match &self.spread {
+            Spread::Nothing => (Spread::Nothing, self.energy),
+            Spread::Trying(value) => (Spread::Waiting(Box::new((value.1, value.2))), self.energy),
             Spread::Waiting(value) => (
                 Spread::Nothing,
-                self.spread_resolve(bridges, &value.0, value.2, neighbors),
+                Self::spread_resolve(&mut bridges, &value.1, value.0, self.energy, neighbors),
             ),
         };
 
         // Gain and spend energy
+        let cost_energy = self.get_energy_cost_run(map_settings);
+        let gain_energy = self.get_energy_gain_run(map_settings);
 
         todo!()
     }
 
-    fn remove_bridges(mut bridges: BridgeSet, neighbors: &TileNeighbors) -> BridgeSet {
-        if let Some(bridge) = &bridges.right {
-            match &neighbors.right {
-                Neighbor::Tile(tile) => match &tile.plant {
-                    State::Occupied(plant) => if !plant.alive {
-                        bridges.right = None;
-                    }
-                    _ => {
-                        bridges.right = None;
+    /// Removes any bridge connected to a tile which is not occupied with an alive plant
+    ///
+    /// # Parameters
+    ///
+    /// bridges: The bridges to modify
+    ///
+    /// neighbors: All of the neighboring tiles
+    fn remove_bridges(bridges: &mut BridgeSet, neighbors: &TileNeighbors) {
+        NeighborDirection::collection().iter().for_each(|dir| {
+            if let Neighbor::Tile(tile) = neighbors.get(dir) {
+                if let State::Occupied(plant) = &tile.plant {
+                    if plant.alive {
+                        return;
                     }
                 }
-                _ => bridges.right = None,
             }
-        }
+
+            *bridges.get_mut(dir) = None;
+        });
     }
 
-    /// Resolves a spread action after waiting, returning the new bridges and
-    /// the energy of this plant
+    /// Resolves a spread action after waiting, returning the new energy of this
+    /// plant and sets the new bridge if it is spreading
     ///
     /// # Parameters
     ///
     /// bridges: The bridges for the plant after removing dead connections
     ///
-    /// spread_direction: The direction to spread in
+    /// direction: The direction to spread in
     ///
-    /// spread_energy: The energy used to spread
+    /// energy: The energy used to spread
+    ///
+    /// self_energy: The enrgy of the plant
     ///
     /// neighbors: All neighbors of this tile
     fn spread_resolve(
-        &self,
-        mut bridges: BridgeSet,
-        spread_direction: &NeighborType,
-        spread_energy: f64,
+        bridges: &mut BridgeSet,
+        direction: &NeighborDirection,
+        energy: f64,
+        self_energy: f64,
         neighbors: &TileNeighbors,
-    ) -> (BridgeSet, f64) {
-        let neighbor = match spread_direction {
-            NeighborType::Right => &neighbors.right,
-            NeighborType::UpRight => &neighbors.up_right,
-            NeighborType::UpLeft => &neighbors.up_left,
-            NeighborType::Left => &neighbors.left,
-            NeighborType::DownLeft => &neighbors.down_left,
-            NeighborType::DownRight => &neighbors.down_right,
-        };
-
-        if let Neighbor::Tile(tile) = neighbor {
-            if let State::Building((plant, direction)) = &tile.plant {
-                if direction == spread_direction {
-                    match &spread_direction {
-                        NeighborType::Right => {
-                            bridges.right = plant.bridges.left.map(|bridge| bridge.get_opposite())
-                        }
-                        NeighborType::UpRight => bridges.le,
-                        NeighborType::UpLeft => &neighbors.up_left,
-                        NeighborType::Left => &neighbors.left,
-                        NeighborType::DownLeft => &neighbors.down_left,
-                        NeighborType::DownRight => &neighbors.down_right,
-                    };
-                    return ();
+    ) -> f64 {
+        if let Neighbor::Tile(tile) = neighbors.get(direction) {
+            if let State::Building((plant, _, build_dir)) = &tile.plant {
+                if build_dir == direction {
+                    if let Some(bridge) = plant.bridges.get(&direction.opposite()).as_ref() {
+                        *bridges.get_mut(direction) = Some(bridge.get_opposite());
+                        return self_energy;
+                    }
                 }
             }
         }
+        return self_energy + energy;
     }
 
     /// Returns a mutated version of itself
@@ -195,7 +189,7 @@ impl Plant {
     /// # Parameters
     ///
     /// map_settings: The settings for the map
-    fn mutate(&self, map_settings: &Settings) -> Self {
+    fn mutate(&self, _map_settings: &Settings) -> Self {
         return self.clone();
     }
 }

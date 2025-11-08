@@ -375,4 +375,16 @@ impl NeighborDirection {
             Self::DownRight,
         ];
     }
+
+    /// Gets the opposite direction
+    pub fn opposite(&self) -> Self {
+        return match self {
+            Self::Right => Self::Left,
+            Self::UpRight => Self::DownLeft,
+            Self::UpLeft => Self::DownRight,
+            Self::Left => Self::Right,
+            Self::DownLeft => Self::UpRight,
+            Self::DownRight => Self::UpLeft,
+        }
+    } 
 }
