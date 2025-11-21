@@ -1,4 +1,4 @@
-use super::Settings;
+use super::{Settings, TileData, TileNeighbors};
 
 mod log;
 pub use log::Log;
@@ -46,7 +46,7 @@ impl Bulk {
         };
     }
 
-    /// Gets the energy cost factor of energy storage for a log
+    /// Gets the energy cost of building energy storage for the bulk of a plant
     ///
     /// # Parameters
     ///
@@ -63,33 +63,57 @@ impl Bulk {
         };
     }
 
-    /// Gets the energy cost factor of running a log
+    /// Gets the energy cost factor of running the bulk of a plant
     ///
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    pub fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
+    pub fn get_energy_cost_factor_run(&self, map_settings: &Settings) -> f64 {
         return match self {
-            Self::Log(data) => data.get_energy_cost_run(map_settings),
-            Self::SugarBulb(data) => data.get_energy_cost_run(map_settings),
-            Self::Leaf(data) => data.get_energy_cost_run(map_settings),
-            Self::Seed(data) => data.get_energy_cost_run(map_settings),
-            Self::RipeSeed(data) => data.get_energy_cost_run(map_settings),
+            Self::Log(data) => data.get_energy_cost_factor_run(map_settings),
+            Self::SugarBulb(data) => data.get_energy_cost_factor_run(map_settings),
+            Self::Leaf(data) => data.get_energy_cost_factor_run(map_settings),
+            Self::Seed(data) => data.get_energy_cost_factor_run(map_settings),
+            Self::RipeSeed(data) => data.get_energy_cost_factor_run(map_settings),
         };
     }
 
-    /// Gets the energy cost of building a new log
+    /// Gets the base energy cost of building the bulk of a new plant
     ///
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    pub fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
+    pub fn get_energy_cost_build_base(&self, map_settings: &Settings) -> f64 {
         return match self {
-            Self::Log(data) => data.get_energy_cost_build(map_settings),
-            Self::SugarBulb(data) => data.get_energy_cost_build(map_settings),
-            Self::Leaf(data) => data.get_energy_cost_build(map_settings),
-            Self::Seed(data) => data.get_energy_cost_build(map_settings),
-            Self::RipeSeed(data) => data.get_energy_cost_build(map_settings),
+            Self::Log(data) => data.get_energy_cost_build_base(map_settings),
+            Self::SugarBulb(data) => data.get_energy_cost_build_base(map_settings),
+            Self::Leaf(data) => data.get_energy_cost_build_base(map_settings),
+            Self::Seed(data) => data.get_energy_cost_build_base(map_settings),
+            Self::RipeSeed(data) => data.get_energy_cost_build_base(map_settings),
+        };
+    }
+
+    /// Gets the energy gained by this plant this round
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    ///
+    /// tile: The data of the tile this plant is located on
+    ///
+    /// neighbors: All neighbor tiles to this tile
+    pub fn get_energy_gain(
+        &self,
+        map_settings: &Settings,
+        tile: &TileData,
+        neighbors: &TileNeighbors,
+    ) -> f64 {
+        return match self {
+            Self::Log(data) => data.get_energy_gain(map_settings, tile, neighbors),
+            Self::SugarBulb(data) => data.get_energy_gain(map_settings, tile, neighbors),
+            Self::Leaf(data) => data.get_energy_gain(map_settings, tile, neighbors),
+            Self::Seed(data) => data.get_energy_gain(map_settings, tile, neighbors),
+            Self::RipeSeed(data) => data.get_energy_gain(map_settings, tile, neighbors),
         };
     }
 }

@@ -105,7 +105,7 @@ impl Bridge {
     ///
     /// map_settings: The general map settings
     pub fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
-        return self.bridge.get_energy_cost_build(map_settings)
+        return self.bridge.get_energy_cost_build_base(map_settings)
             + self
                 .bridge
                 .get_energy_cost_transfer_energy(map_settings, self.energy_capacity);
@@ -117,7 +117,7 @@ impl Bridge {
     ///
     /// map_settings: The general map settings
     pub fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
-        return self.bridge.get_energy_cost_run(map_settings)
+        return self.bridge.get_energy_cost_factor_run(map_settings)
             * self.get_energy_cost_build(map_settings);
     }
 }
@@ -173,7 +173,7 @@ pub enum BridgeType {
 }
 
 impl BridgeType {
-    /// Gets the energy cost factor of energy transfer for a bridge
+    /// Gets the energy build cost of energy transfer for a bridge
     ///
     /// # Parameters
     ///
@@ -192,22 +192,23 @@ impl BridgeType {
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    pub fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
+    pub fn get_energy_cost_factor_run(&self, map_settings: &Settings) -> f64 {
         return match self {
-            Self::Log(data) => data.get_energy_cost_run(map_settings),
-            Self::Branch(data) => data.get_energy_cost_run(map_settings),
+            Self::Log(data) => data.get_energy_cost_factor_run(map_settings),
+            Self::Branch(data) => data.get_energy_cost_factor_run(map_settings),
         };
     }
 
-    /// Gets the energy cost of building a new bridge
+    /// Gets the base energy cost of building a new bridge, without any transfer
+    /// costs
     ///
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    pub fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
+    pub fn get_energy_cost_build_base(&self, map_settings: &Settings) -> f64 {
         return match self {
-            Self::Log(data) => data.get_energy_cost_build(map_settings),
-            Self::Branch(data) => data.get_energy_cost_build(map_settings),
+            Self::Log(data) => data.get_energy_cost_build_base(map_settings),
+            Self::Branch(data) => data.get_energy_cost_build_base(map_settings),
         };
     }
 }

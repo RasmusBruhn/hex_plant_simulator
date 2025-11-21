@@ -3,7 +3,7 @@ use std::mem;
 use super::{DataModeBackground, settings::Settings, sun};
 
 mod neighbor;
-pub(super) use neighbor::{Neighbor, TileNeighbors, TilePos, NeighborDirection};
+pub(super) use neighbor::{Neighbor, NeighborDirection, TileNeighbors, TilePos};
 
 mod simulation;
 use simulation::plant;
@@ -13,19 +13,18 @@ use simulation::plant;
 pub struct Tile {
     /// The plant at this tile
     plant: plant::State,
-    /// The light transparency of this tile
-    transparency: f64,
-    /// The light level of this tile
-    light: f64,
+    /// All tile state data which is not related to the plant
+    data: TileData,
 }
 
 impl Tile {
     /// Constructs a new empty tile
     pub fn new() -> Self {
+        let data = TileData::new();
+
         return Self {
             plant: plant::State::Nothing,
-            transparency: 1.0,
-            light: 0.0,
+            data,
         };
     }
 
@@ -34,12 +33,31 @@ impl Tile {
     /// mode: The mode to display
     pub fn get_data_background(&self, mode: &DataModeBackground) -> InstanceTile {
         let value = match mode {
-            DataModeBackground::Transparency => self.transparency,
-            DataModeBackground::Light => self.light,
+            DataModeBackground::Transparency => self.data.transparency,
+            DataModeBackground::Light => self.data.light,
         };
 
         return InstanceTile {
             color_value: value as f32,
+        };
+    }
+}
+
+/// All state data for the tile (no plant data)
+#[derive(Clone, Debug)]
+struct TileData {
+    /// The light transparency of this tile
+    transparency: f64,
+    /// The light level of this tile
+    light: f64,
+}
+
+impl TileData {
+    /// Constructs a new empty tile
+    pub fn new() -> Self {
+        return Self {
+            transparency: 1.0,
+            light: 0.0,
         };
     }
 }

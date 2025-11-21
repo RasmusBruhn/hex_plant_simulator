@@ -1,4 +1,4 @@
-use super::Settings;
+use super::{Settings, TileData, TileNeighbors};
 
 /// Detailed implementation for a log
 #[derive(Clone, Debug)]
@@ -14,12 +14,12 @@ impl Log {
         return map_settings.transparency.log;
     }
 
-    /// Gets the energy cost factor of energy storage for a log
+    /// Gets the energy cost of building energy storage for a log
     ///
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    /// 
+    ///
     /// capacity: The storage capacity
     pub fn get_energy_cost_storage_energy(&self, map_settings: &Settings, capacity: f64) -> f64 {
         return map_settings.energy.storage.energy.log * capacity;
@@ -30,16 +30,34 @@ impl Log {
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    pub fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
+    pub fn get_energy_cost_factor_run(&self, map_settings: &Settings) -> f64 {
         return map_settings.energy.running.bulk.log;
     }
 
-    /// Gets the energy cost of building a new log
+    /// Gets the base energy cost of building a new log
     ///
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    pub fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
+    pub fn get_energy_cost_build_base(&self, map_settings: &Settings) -> f64 {
         return map_settings.energy.base.bulk.log;
+    }
+
+    /// Gets the energy gained by this log this round
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    ///
+    /// tile: The data of the tile this plant is located on
+    ///
+    /// neighbors: All neighbor tiles to this tile
+    pub fn get_energy_gain(
+        &self,
+        _map_settings: &Settings,
+        _tile: &TileData,
+        _neighbors: &TileNeighbors,
+    ) -> f64 {
+        return 0.0;
     }
 }

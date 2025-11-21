@@ -6,7 +6,7 @@
 
 // Log: #52361e
 // Branch: #78583c
-use super::{Neighbor, NeighborDirection, Settings, Tile, TileNeighbors};
+use super::{Neighbor, NeighborDirection, Settings, TileData, TileNeighbors};
 
 mod state;
 pub use state::State;
@@ -57,11 +57,21 @@ impl Plant {
     /// # Parameters
     ///
     /// map_settings: The general map settings
-    fn get_energy_cost_build_bulk(&self, map_settings: &Settings) -> f64 {
-        return self.bulk.get_energy_cost_build(map_settings)
+    fn get_bulk_energy_cost_build(&self, map_settings: &Settings) -> f64 {
+        return self.bulk.get_energy_cost_build_base(map_settings)
             + self
                 .bulk
                 .get_energy_cost_storage_energy(map_settings, self.energy_capacity);
+    }
+
+    /// Gets the energy cost of running the bulk of this plant
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    fn get_bulk_energy_cost_run(&self, map_settings: &Settings) -> f64 {
+        return self.get_bulk_energy_cost_build(map_settings)
+            * self.bulk.get_energy_cost_factor_run(map_settings);
     }
 
     /// Gets the energy cost of building this plant
@@ -70,7 +80,7 @@ impl Plant {
     ///
     /// map_settings: The general map settings
     fn get_energy_cost_build(&self, map_settings: &Settings) -> f64 {
-        return self.get_energy_cost_build_bulk(map_settings)
+        return self.get_bulk_energy_cost_build(map_settings)
             + self
                 .bridges
                 .iter()
@@ -84,13 +94,30 @@ impl Plant {
     ///
     /// map_settings: The general map settings
     fn get_energy_cost_run(&self, map_settings: &Settings) -> f64 {
-        return self.get_energy_cost_build_bulk(map_settings)
-            * self.bulk.get_energy_cost_run(map_settings)
+        return self.get_bulk_energy_cost_run(map_settings)
             + self
                 .bridges
                 .iter()
                 .map(|bridge| 0.5 * bridge.get_energy_cost_run(map_settings))
                 .sum::<f64>();
+    }
+
+    /// Gets the energy gained by this plant this round
+    ///
+    /// # Parameters
+    ///
+    /// map_settings: The general map settings
+    ///
+    /// tile: The data of the tile this plant is located on
+    ///
+    /// neighbors: All neighbor tiles to this tile
+    fn get_energy_gain(
+        &self,
+        map_settings: &Settings,
+        tile: &TileData,
+        neighbors: &TileNeighbors,
+    ) -> f64 {
+        return self.bulk.get_energy_gain(map_settings, tile, neighbors);
     }
 
     /// Forwards the state of this plant to the next simulation step
@@ -99,14 +126,21 @@ impl Plant {
     ///
     /// map_settings: The settings for the map
     ///
+    /// tile: The tile data for the tile of this plant
+    ///
     /// neighbors: References to all the neighbors of this tile
-    fn forward(&self, map_settings: &Settings, neighbors: &TileNeighbors) -> Option<Self> {
+    fn forward(
+        &self,
+        map_settings: &Settings,
+        tile: &TileData,
+        neighbors: &TileNeighbors,
+    ) -> Option<Self> {
         // Kill it if it was assigned to die
         if !self.alive {
             return None;
         }
 
-        // Setup initial values
+        // Setup initial bridges
         let mut bridges = self.bridges.clone();
 
         // Remove unused bridges
@@ -124,7 +158,11 @@ impl Plant {
 
         // Gain and spend energy
         let cost_energy = self.get_energy_cost_run(map_settings);
-        let gain_energy = self.get_energy_gain_run(map_settings);
+        let gain_energy = self.get_energy_gain(map_settings, tile, neighbors);
+
+        // Transfer energy
+
+        // Get total energy and make sure it has enough to survive
 
         todo!()
     }

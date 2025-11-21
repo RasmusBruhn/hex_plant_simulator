@@ -1,4 +1,4 @@
-use super::{Neighbor, Settings, Tile, TileNeighbors, NeighborDirection};
+use super::{Neighbor, NeighborDirection, Settings, Tile, TileData, TileNeighbors};
 
 pub mod plant;
 
@@ -12,9 +12,11 @@ impl Tile {
     /// neighbors: References to all the neighbors of this til
     pub fn forward(&self, map_settings: &Settings, neighbors: &TileNeighbors) -> Self {
         return Self {
-            plant: self.plant.forward(map_settings, neighbors),
-            transparency: self.forward_transparency(map_settings, neighbors),
-            light: self.forward_light(map_settings, neighbors),
+            plant: self.plant.forward(map_settings, &self.data, neighbors),
+            data: TileData {
+                transparency: self.forward_transparency(map_settings, neighbors),
+                light: self.forward_light(map_settings, neighbors),
+            },
         };
     }
 
@@ -39,12 +41,12 @@ impl Tile {
     fn forward_light(&self, _map_settings: &Settings, neighbors: &TileNeighbors) -> f64 {
         let light_right = match neighbors.up_right {
             Neighbor::Empty => 0.0,
-            Neighbor::Tile(tile) => tile.light * tile.transparency,
+            Neighbor::Tile(tile) => tile.data.light * tile.data.transparency,
             Neighbor::SunTile(tile) => tile.intensity,
         };
         let light_left = match neighbors.up_left {
             Neighbor::Empty => 0.0,
-            Neighbor::Tile(tile) => tile.light * tile.transparency,
+            Neighbor::Tile(tile) => tile.data.light * tile.data.transparency,
             Neighbor::SunTile(tile) => tile.intensity,
         };
         return 0.5 * (light_right + light_left);

@@ -1,4 +1,4 @@
-use super::{Neighbor, NeighborDirection, Plant, Settings, Spread, TileNeighbors};
+use super::{Neighbor, NeighborDirection, Plant, Settings, Spread, TileData, TileNeighbors};
 
 /// The state of plant growth in a tile
 #[derive(Clone, Debug)]
@@ -35,12 +35,19 @@ impl State {
     ///
     /// map_settings: The settings for the map
     ///
+    /// tile: The tile data of the tile of this plant
+    ///
     /// neighbors: References to all the neighbors of this tile
-    pub fn forward(&self, map_settings: &Settings, neighbors: &TileNeighbors) -> Self {
+    pub fn forward(
+        &self,
+        map_settings: &Settings,
+        tile: &TileData,
+        neighbors: &TileNeighbors,
+    ) -> Self {
         return match self {
             Self::Nothing => Self::try_spread(map_settings, neighbors),
             Self::Building(values) => Self::try_build(map_settings, values, neighbors),
-            Self::Occupied(plant) => match plant.forward(map_settings, neighbors) {
+            Self::Occupied(plant) => match plant.forward(map_settings, tile, neighbors) {
                 Some(plant) => Self::Occupied(plant),
                 None => Self::Nothing,
             },
