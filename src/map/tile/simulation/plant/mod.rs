@@ -20,6 +20,8 @@ use bridge::BridgeSet;
 mod bulk;
 use bulk::Bulk;
 
+mod program;
+
 /// A single plant tile
 #[derive(Clone, Debug)]
 pub struct Plant {
@@ -27,6 +29,11 @@ pub struct Plant {
     bulk: Bulk,
     /// All bridges connecting to this tile
     bridges: BridgeSet,
+    /// The age of this plant tile in simulation steps
+    age: usize,
+    /// The cumulative age of this entire plant (number of simulation steps
+    /// since the seed separated from its parent)
+    cum_age: usize,
     /// If the plant is currently alive
     alive: bool,
     /// The energy in this plant tile
@@ -120,6 +127,52 @@ impl Plant {
         return self.bulk.get_energy_gain(map_settings, tile, neighbors);
     }
 
+    /// Gets the energy transfered to or from this plant tile with its
+    /// neighbors, gains energy if positive, looses energy if negative
+    ///
+    /// # Parameters
+    ///
+    /// neighbors: All neighbor tiles to this tile
+    fn get_energy_transfer(&self, neighbors: &TileNeighbors) -> f64 {
+        return NeighborDirection::collection()
+            .iter()
+            .filter_map(|dir| {
+                if let Some(bridge) = self.bridges.get(dir) {
+                    if let Neighbor::Tile(tile) = neighbors.get(dir) {
+                        if let State::Occupied(plant) = &tile.plant {
+                            if plant.alive {
+                                let self_energy =
+                                    ((self.energy - self.energy_reserve) / 6.0).max(0.0);
+                                let self_capacity = (self.energy_capacity - self.energy_reserve)
+                                    / 6.0
+                                    - self_energy;
+                                let neighbor_energy =
+                                    ((plant.energy - plant.energy_reserve) / 6.0).max(0.0);
+                                let neighbor_capacity =
+                                    (plant.energy_capacity - plant.energy_reserve) / 6.0
+                                        - neighbor_energy;
+
+                                return Some((neighbor_energy - self_energy).clamp(
+                                    if bridge.energy_transfer.can_transmit() {
+                                        -(bridge.energy_capacity.min(neighbor_capacity))
+                                    } else {
+                                        0.0
+                                    },
+                                    if bridge.energy_transfer.can_receive() {
+                                        bridge.energy_capacity.min(self_capacity)
+                                    } else {
+                                        0.0
+                                    },
+                                ));
+                            }
+                        }
+                    }
+                }
+                return None;
+            })
+            .sum::<f64>();
+    }
+
     /// Forwards the state of this plant to the next simulation step
     ///
     /// # Parameters
@@ -156,15 +209,30 @@ impl Plant {
             ),
         };
 
-        // Gain and spend energy
+        // Calculate all changes in energy
         let cost_energy = self.get_energy_cost_run(map_settings);
         let gain_energy = self.get_energy_gain(map_settings, tile, neighbors);
+        let transfer_energy = self.get_energy_transfer(neighbors);
 
-        // Transfer energy
+        // Get total energy
+        let new_energy =
+            (energy + gain_energy + transfer_energy - cost_energy).min(self.energy_capacity);
 
-        // Get total energy and make sure it has enough to survive
+        // Check if it is still alive
+        let new_alive = bridges.iter().any(|bridge| !bridge.exiting) && new_energy >= 0.0;
 
-        todo!()
+        // Construct the new plant
+        return Some(Self {
+            bulk: self.bulk.clone(),
+            bridges,
+            age: self.age + 1,
+            cum_age: self.cum_age + 1,
+            alive: new_alive,
+            energy: new_energy,
+            energy_capacity: self.energy_capacity,
+            energy_reserve: self.energy_reserve,
+            spread,
+        });
     }
 
     /// Removes any bridge connected to a tile which is not occupied with an alive plant
