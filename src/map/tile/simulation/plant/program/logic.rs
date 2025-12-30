@@ -1,4 +1,6 @@
-use super::{ApplyData, Arithmetic, NeighborDirection, Plant, TileData, TileNeighbors};
+use super::{
+    ApplyData, Neighbor, NeighborDirection, State, id_to_neighbor_dir, neighbor_dir_to_id,
+};
 
 /// Plant action logic to calculate boolean operations
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -59,7 +61,7 @@ pub enum Logic {
     IsNegative(usize),
     /// Checks if a arithmetic operator is negative when rounded to an integer
     IsNegativeRound(usize),
-    /// True if the tile in the speicifed direction is available for spreading
+    /// True if the tile in the specified direction is available for spreading
     TileFree(NeighborDirection),
 }
 
@@ -135,17 +137,7 @@ impl Logic {
             &Self::IsNotPositiveRound(index) => (index, 0),
             &Self::IsNegative(index) => (index, 0),
             &Self::IsNegativeRound(index) => (index, 0),
-            &Self::TileFree(dir) => (
-                match dir {
-                    NeighborDirection::Right => 0,
-                    NeighborDirection::UpRight => 1,
-                    NeighborDirection::UpLeft => 2,
-                    NeighborDirection::Left => 3,
-                    NeighborDirection::DownLeft => 4,
-                    NeighborDirection::DownRight => 5,
-                },
-                0,
-            ),
+            &Self::TileFree(dir) => (neighbor_dir_to_id(&dir), 0),
         };
     }
 
@@ -158,7 +150,7 @@ impl Logic {
     ///
     /// indices: The two indices used to get the values to operate on
     pub fn from_id(id: usize, indices: (usize, usize)) -> Self {
-        return match id {
+        return match id % Self::COUNT {
             0 => Self::False,
             1 => Self::True,
             2 => Self::And(indices.0, indices.1),
@@ -187,14 +179,7 @@ impl Logic {
             25 => Self::IsNotPositiveRound(indices.0),
             26 => Self::IsNegative(indices.0),
             27 => Self::IsNegativeRound(indices.0),
-            28 => Self::TileFree(match indices.0 {
-                0 => NeighborDirection::Right,
-                1 => NeighborDirection::UpRight,
-                2 => NeighborDirection::UpLeft,
-                3 => NeighborDirection::Left,
-                4 => NeighborDirection::DownLeft,
-                _ => NeighborDirection::DownRight,
-            }),
+            28 => Self::TileFree(id_to_neighbor_dir(indices.0)),
             _ => Self::False,
         };
     }
@@ -208,6 +193,347 @@ impl Logic {
     /// remaining count: The remaining number of operators to evaluate before
     /// returning default values
     pub fn apply(&self, data: &ApplyData, remain_count: &mut usize) -> bool {
-        todo!()
+        if *remain_count == 0 {
+            return false;
+        }
+        *remain_count -= 1;
+
+        return match self {
+            &Self::False => false,
+            &Self::True => true,
+            &Self::And(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_logic(index1, data, remain_count);
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_logic(index2, data, remain_count);
+
+                value1 && value2
+            }
+            &Self::Or(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_logic(index1, data, remain_count);
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_logic(index2, data, remain_count);
+
+                value1 || value2
+            }
+            &Self::Xor(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_logic(index1, data, remain_count);
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_logic(index2, data, remain_count);
+
+                value1 ^ value2
+            }
+            &Self::Not(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_logic(index, data, remain_count);
+
+                !value
+            }
+            &Self::Equal(index1, index2) => {
+                let value1 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index1, data, remain_count);
+                let value2 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index2, data, remain_count);
+
+                value1 == value2
+            }
+            &Self::EqualRound(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index1, data, remain_count)
+                    .round();
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index2, data, remain_count)
+                    .round();
+
+                value1 == value2
+            }
+            &Self::NotEqual(index1, index2) => {
+                let value1 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index1, data, remain_count);
+                let value2 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index2, data, remain_count);
+
+                value1 != value2
+            }
+            &Self::NotEqualRound(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index1, data, remain_count)
+                    .round();
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index2, data, remain_count)
+                    .round();
+
+                value1 != value2
+            }
+            &Self::Greater(index1, index2) => {
+                let value1 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index1, data, remain_count);
+                let value2 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index2, data, remain_count);
+
+                value1 > value2
+            }
+            &Self::GreaterRound(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index1, data, remain_count)
+                    .round();
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index2, data, remain_count)
+                    .round();
+
+                value1 > value2
+            }
+            &Self::GreaterOrEqual(index1, index2) => {
+                let value1 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index1, data, remain_count);
+                let value2 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index2, data, remain_count);
+
+                value1 >= value2
+            }
+            &Self::GreaterOrEqualRound(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index1, data, remain_count)
+                    .round();
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index2, data, remain_count)
+                    .round();
+
+                value1 >= value2
+            }
+            &Self::Less(index1, index2) => {
+                let value1 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index1, data, remain_count);
+                let value2 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index2, data, remain_count);
+
+                value1 < value2
+            }
+            &Self::LessRound(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index1, data, remain_count)
+                    .round();
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index2, data, remain_count)
+                    .round();
+
+                value1 < value2
+            }
+            &Self::LessOrEqual(index1, index2) => {
+                let value1 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index1, data, remain_count);
+                let value2 =
+                    data.plant
+                        .program
+                        .program
+                        .apply_arithmetic(index2, data, remain_count);
+
+                value1 <= value2
+            }
+            &Self::LessOrEqualRound(index1, index2) => {
+                let value1 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index1, data, remain_count)
+                    .round();
+                let value2 = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index2, data, remain_count)
+                    .round();
+
+                value1 <= value2
+            }
+            &Self::IsPositive(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count);
+
+                value > 0.0
+            }
+            &Self::IsPositiveRound(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count)
+                    .round();
+
+                value > 0.0
+            }
+            &Self::IsNotNegative(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count);
+
+                value >= 0.0
+            }
+            &Self::IsNotNegativeRound(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count)
+                    .round();
+
+                value >= 0.0
+            }
+            &Self::IsZero(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count);
+
+                value == 0.0
+            }
+            &Self::IsZeroRound(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count)
+                    .round();
+
+                value == 0.0
+            }
+            &Self::IsNotPositive(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count);
+
+                value <= 0.0
+            }
+            &Self::IsNotPositiveRound(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count)
+                    .round();
+
+                value <= 0.0
+            }
+            &Self::IsNegative(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count);
+
+                value < 0.0
+            }
+            &Self::IsNegativeRound(index) => {
+                let value = data
+                    .plant
+                    .program
+                    .program
+                    .apply_arithmetic(index, data, remain_count)
+                    .round();
+
+                value < 0.0
+            }
+            &Self::TileFree(dir) => match data.neighbors.get(&dir) {
+                Neighbor::Tile(tile) => match &tile.plant {
+                    State::Nothing => true,
+                    _ => false,
+                },
+                _ => false,
+            },
+        };
     }
 }

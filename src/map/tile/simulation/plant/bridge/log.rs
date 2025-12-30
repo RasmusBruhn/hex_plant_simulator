@@ -5,6 +5,11 @@ use super::Settings;
 pub struct Log {}
 
 impl Log {
+    /// Constructs a new log
+    pub fn new() -> Self {
+        return Self {};
+    }
+
     /// Gets the energy build cost of energy transfer for a log bridge
     ///
     /// # Parameters

@@ -5,6 +5,11 @@ use super::{Settings, TileData, TileNeighbors};
 pub struct SugarBulb {}
 
 impl SugarBulb {
+    /// Constructs a new sugar bulb
+    pub fn new() -> Self {
+        return Self {};
+    }
+
     /// Gets the transparency of a sugar bulb
     ///
     /// # Parameters

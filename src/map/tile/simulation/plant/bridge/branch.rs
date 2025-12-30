@@ -5,6 +5,11 @@ use super::Settings;
 pub struct Branch {}
 
 impl Branch {
+    /// Constructs a new branch
+    pub fn new() -> Self {
+        return Self {};
+    }
+
     /// Gets the energy build cost of energy transfer for a branch bridge
     ///
     /// # Parameters

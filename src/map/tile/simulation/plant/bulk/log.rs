@@ -5,6 +5,11 @@ use super::{Settings, TileData, TileNeighbors};
 pub struct Log {}
 
 impl Log {
+    /// Constructs a new log
+    pub fn new() -> Self {
+        return Self {};
+    }
+
     /// Gets the transparency of a log
     ///
     /// # Parameters

@@ -8,6 +8,18 @@ pub struct Leaf {
 }
 
 impl Leaf {
+    /// Constructs a new leaf
+    /// 
+    /// # Parameters
+    /// 
+    /// absorption: The absorption of the leaf
+    pub fn new(absorption: f64) -> Self {
+        let absorption = absorption.clamp(0.0, 1.0);
+        let absorption = if absorption == 0.0 { 1.0 } else { absorption };
+
+        return Self { absorption };
+    }
+
     /// Gets the transparency of a leaf
     ///
     /// # Parameters

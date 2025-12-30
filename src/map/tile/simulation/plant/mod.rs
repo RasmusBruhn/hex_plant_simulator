@@ -15,12 +15,13 @@ mod spread;
 use spread::Spread;
 
 mod bridge;
-use bridge::BridgeSet;
+use bridge::{Bridge, BridgeSet, BridgeType, TransferMode};
 
 mod bulk;
 use bulk::Bulk;
 
 mod program;
+use program::TileProgram;
 
 /// A single plant tile
 #[derive(Clone, Debug)]
@@ -29,6 +30,8 @@ pub struct Plant {
     bulk: Bulk,
     /// All bridges connecting to this tile
     bridges: BridgeSet,
+    /// The program for this plant tile
+    program: TileProgram,
     /// The age of this plant tile in simulation steps
     age: usize,
     /// The cumulative age of this entire plant (number of simulation steps
@@ -50,6 +53,46 @@ pub struct Plant {
 }
 
 impl Plant {
+    /// Constructs a new plant
+    ///
+    /// # Parameters
+    ///
+    /// bulk: The bulk type of this plant
+    ///
+    /// bridges: All bridges connecting this tile
+    ///
+    /// program: The program for this plant
+    ///
+    /// age: The cumulative age of the mother plant
+    ///
+    /// energy: The energy stored in this plant
+    ///
+    /// energy_capacity: The maximum energy that can be stored
+    ///
+    /// energy_reserve: The amount of energy reserved for itself that cannot be transfered to neighbors
+    fn new(
+        bulk: Bulk,
+        bridges: BridgeSet,
+        program: TileProgram,
+        age: usize,
+        energy: f64,
+        energy_capacity: f64,
+        energy_reserve: f64,
+    ) -> Self {
+        return Self {
+            bulk,
+            bridges,
+            program,
+            age: 0,
+            cum_age: age,
+            alive: true,
+            energy: energy.max(0.0),
+            energy_capacity: energy_capacity.max(0.0),
+            energy_reserve: energy_reserve.min(energy_capacity).max(0.0),
+            spread: Spread::Nothing,
+        };
+    }
+
     /// Gets the transparency of this plant
     ///
     /// # Parameters
@@ -219,12 +262,16 @@ impl Plant {
             (energy + gain_energy + transfer_energy - cost_energy).min(self.energy_capacity);
 
         // Check if it is still alive
-        let new_alive = bridges.iter().any(|bridge| !bridge.exiting) && new_energy >= 0.0;
+        let new_alive = match &self.bulk {
+            Bulk::RipeSeed(_) | Bulk::SugarBulb(_) => true,
+            _ => bridges.iter().any(|bridge| !bridge.exiting),
+        } && new_energy >= 0.0;
 
         // Construct the new plant
-        return Some(Self {
+        let mut new_plant = Self {
             bulk: self.bulk.clone(),
             bridges,
+            program: self.program.clone(),
             age: self.age + 1,
             cum_age: self.cum_age + 1,
             alive: new_alive,
@@ -232,10 +279,25 @@ impl Plant {
             energy_capacity: self.energy_capacity,
             energy_reserve: self.energy_reserve,
             spread,
-        });
+        };
+
+        // Ripen a seed
+        if let Bulk::Seed(_) = &new_plant.bulk
+            && new_plant.energy >= new_plant.energy_reserve
+        {
+            new_plant.bulk = Bulk::RipeSeed(bulk::RipeSeed::new());
+            new_plant.bridges = BridgeSet::new();
+        }
+
+        // Apply the program
+        self.program
+            .apply(&self, tile, neighbors, map_settings, &mut new_plant);
+
+        return Some(new_plant);
     }
 
-    /// Removes any bridge connected to a tile which is not occupied with an alive plant
+    /// Removes any bridge connected to a tile which is not occupied with an
+    /// alive plant or a ripe seed
     ///
     /// # Parameters
     ///
@@ -247,7 +309,10 @@ impl Plant {
             if let Neighbor::Tile(tile) = neighbors.get(dir) {
                 if let State::Occupied(plant) = &tile.plant {
                     if plant.alive {
-                        return;
+                        match &plant.bulk {
+                            Bulk::RipeSeed(_) => (),
+                            _ => return,
+                        }
                     }
                 }
             }

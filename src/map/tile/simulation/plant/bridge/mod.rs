@@ -1,6 +1,6 @@
 use std::iter::once;
 
-use super::{Settings, NeighborDirection};
+use super::{NeighborDirection, Settings};
 
 mod log;
 pub use log::Log;
@@ -26,6 +26,18 @@ pub struct BridgeSet {
 }
 
 impl BridgeSet {
+    /// Constructs a new empty bridge set
+    pub fn new() -> Self {
+        return Self {
+            right: None,
+            up_right: None,
+            up_left: None,
+            left: None,
+            down_left: None,
+            down_right: None,
+        };
+    }
+
     /// Iterates through all the bridges
     pub fn iter(&self) -> impl Iterator<Item = &Bridge> {
         return once(&self.right)
@@ -89,6 +101,31 @@ pub struct Bridge {
 }
 
 impl Bridge {
+    /// Constructs a new bridge
+    ///
+    /// # Parameters
+    ///
+    /// bridge: The bridge type to construct
+    ///
+    /// exiting: True if this is for the mother plant
+    ///
+    /// energy_capacity: The maximum amount of energy to transfer per step, will be lower bound at 0
+    ///
+    /// energy_transfer: The transfer mode for energy
+    pub fn new(
+        bridge: BridgeType,
+        exiting: bool,
+        energy_capacity: f64,
+        energy_transfer: TransferMode,
+    ) -> Self {
+        return Self {
+            bridge,
+            exiting,
+            energy_capacity: energy_capacity.max(0.0),
+            energy_transfer,
+        };
+    }
+
     /// Gets the other end of the bridge
     pub fn get_opposite(&self) -> Self {
         return Self {

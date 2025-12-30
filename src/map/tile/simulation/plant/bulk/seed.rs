@@ -5,6 +5,11 @@ use super::{Settings, TileData, TileNeighbors};
 pub struct Seed {}
 
 impl Seed {
+    /// Constructs a new seed
+    pub fn new() -> Self {
+        return Self {};
+    }
+
     /// Gets the transparency of a seed
     ///
     /// # Parameters
